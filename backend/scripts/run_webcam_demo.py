@@ -1,8 +1,9 @@
 """
-Script de demostración de captura de webcam.
+Script de demostración de captura de webcam con reconocimiento emocional.
 
-Este script muestra cómo utilizar la clase WebcamCapture para
-capturar y visualizar video en tiempo real desde la webcam.
+Este script muestra cómo utilizar la clase WebcamCapture junto con
+DeepFaceEmotionDetector para capturar video en tiempo real desde la webcam
+y detectar emociones faciales.
 
 Uso:
     python backend/scripts/run_webcam_demo.py
@@ -19,22 +20,26 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import cv2
 from core.camera import WebcamCapture
+from core.emotion import DeepFaceEmotionDetector
 
 
 def main():
     """
     Función principal del script de demostración.
     
-    Captura video de la webcam, dibuja información sobre los frames
-    y muestra la ventana hasta que el usuario presione 'q'.
+    Captura video de la webcam, detecta emociones faciales usando DeepFace,
+    dibuja información sobre los frames y muestra la ventana hasta que
+    el usuario presione 'q'.
     """
-    print("=" * 60)
-    print("Demo de Captura de Webcam - TFM Generación Musical Emocional")
-    print("=" * 60)
-    print("\nPresiona 'q' para salir\n")
+    print("=" * 70)
+    print("Demo Webcam + Reconocimiento Emocional - TFM Generación Musical")
+    print("=" * 70)
+    print("\nPresiona 'q' para salir")
+    print("\nNOTA: La primera detección puede tardar unos segundos (carga de modelos)\n")
     
-    # Crear instancia de captura de webcam
+    # Crear instancias de captura de webcam y detector emocional
     webcam = WebcamCapture(camera_index=0)
+    emotion_detector = DeepFaceEmotionDetector(enforce_detection=False)
     
     try:
         # Iniciar la cámara
@@ -49,7 +54,7 @@ def main():
         
         frame_count = 0
         
-        # Bucle principal de captura
+        # Bucle principal de captura y detección
         while True:
             # Leer frame de la cámara
             success, frame = webcam.read()
@@ -60,38 +65,77 @@ def main():
             
             frame_count += 1
             
+            # Detectar emoción en el frame (cada N frames para mejorar performance)
+            # Para mejorar FPS, solo analizamos cada 10 frames
+            if frame_count % 10 == 0 or frame_count == 1:
+                emotion_result = emotion_detector.predict(frame)
+                current_emotion = emotion_result['emotion']
+                face_detected = emotion_result['face_detected']
+                probabilities = emotion_result['probabilities']
+            
+            # Obtener etiqueta en español para visualización
+            emotion_spanish = emotion_detector.get_emotion_label_spanish(current_emotion)
+            
             # Dibujar información sobre el frame
             # Fondo semi-transparente para el texto
             overlay = frame.copy()
-            cv2.rectangle(overlay, (10, 10), (400, 100), (0, 0, 0), -1)
+            cv2.rectangle(overlay, (10, 10), (500, 140), (0, 0, 0), -1)
             cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
             
-            # Texto principal
+            # Emoción detectada (texto principal)
+            emotion_color = (0, 255, 0) if face_detected else (0, 165, 255)
             cv2.putText(
                 frame,
-                "Webcam OK",
-                (20, 45),
+                f"Emocion: {emotion_spanish}",
+                (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                1.2,
-                (0, 255, 0),
+                1.0,
+                emotion_color,
                 2,
                 cv2.LINE_AA
             )
             
-            # Información adicional
+            # Estado de detección de rostro
+            face_status = "Rostro detectado" if face_detected else "Sin rostro"
             cv2.putText(
                 frame,
-                f"Frame: {frame_count} | Presiona 'q' para salir",
-                (20, 75),
+                face_status,
+                (20, 85),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
+                0.6,
                 (255, 255, 255),
                 1,
                 cv2.LINE_AA
             )
             
+            # Probabilidad de la emoción dominante (si hay rostro)
+            if face_detected and probabilities:
+                prob_value = probabilities.get(current_emotion, 0)
+                cv2.putText(
+                    frame,
+                    f"Confianza: {prob_value:.1f}%",
+                    (20, 115),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 255),
+                    1,
+                    cv2.LINE_AA
+                )
+            
+            # Información de control
+            cv2.putText(
+                frame,
+                "Presiona 'q' para salir",
+                (20, 135),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.4,
+                (200, 200, 200),
+                1,
+                cv2.LINE_AA
+            )
+            
             # Mostrar el frame en una ventana
-            cv2.imshow('TFM - Webcam Demo', frame)
+            cv2.imshow('TFM - Reconocimiento Emocional', frame)
             
             # Salir si se presiona 'q'
             if cv2.waitKey(1) & 0xFF == ord('q'):
