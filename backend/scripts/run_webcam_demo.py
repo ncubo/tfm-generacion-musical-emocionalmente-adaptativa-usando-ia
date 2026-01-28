@@ -54,6 +54,11 @@ def main():
         
         frame_count = 0
         
+        # Inicializar variables de detección emocional
+        current_emotion = 'neutral'
+        face_detected = False
+        probabilities = {}
+        
         # Bucle principal de captura y detección
         while True:
             # Leer frame de la cámara
@@ -73,20 +78,25 @@ def main():
                 face_detected = emotion_result['face_detected']
                 probabilities = emotion_result['probabilities']
             
-            # Obtener etiqueta en español para visualización
-            emotion_spanish = emotion_detector.get_emotion_label_spanish(current_emotion)
-            
             # Dibujar información sobre el frame
             # Fondo semi-transparente para el texto
             overlay = frame.copy()
             cv2.rectangle(overlay, (10, 10), (500, 140), (0, 0, 0), -1)
             cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
             
-            # Emoción detectada (texto principal)
-            emotion_color = (0, 255, 0) if face_detected else (0, 165, 255)
+            # Texto de emoción o estado
+            if face_detected:
+                # Obtener etiqueta en español para visualización
+                emotion_spanish = emotion_detector.get_emotion_label_spanish(current_emotion)
+                display_text = f"Emocion: {emotion_spanish}"
+                emotion_color = (0, 255, 0)  # Verde
+            else:
+                display_text = "Sin rostro detectado"
+                emotion_color = (0, 165, 255)  # Naranja
+            
             cv2.putText(
                 frame,
-                f"Emocion: {emotion_spanish}",
+                display_text,
                 (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1.0,

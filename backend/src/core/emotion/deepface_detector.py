@@ -88,6 +88,19 @@ class DeepFaceEmotionDetector:
             if isinstance(result, list):
                 result = result[0]
             
+            # Verificar confianza de detección facial
+            # face_confidence es 0.0 cuando no hay rostro real
+            # Usamos un umbral de 0.9 (90%) para considerar un rostro válido
+            face_confidence = result.get('face_confidence', 0.0)
+            
+            if face_confidence < 0.9:
+                # Confianza muy baja = no hay rostro real
+                return {
+                    'emotion': 'neutral',
+                    'probabilities': {},
+                    'face_detected': False
+                }
+            
             # Extraer emoción dominante y probabilidades
             dominant_emotion = result['dominant_emotion']
             emotion_probabilities = result['emotion']
