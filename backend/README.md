@@ -12,11 +12,14 @@ backend/
 │   ├── app.py               # Aplicación principal (placeholder)
 │   └── core/
 │       ├── __init__.py
-│       └── camera/
+│       ├── camera/
+│       │   ├── __init__.py
+│       │   └── webcam.py    # Módulo de captura de webcam
+│       └── emotion/
 │           ├── __init__.py
-│           └── webcam.py    # Módulo de captura de webcam
+│           └── deepface_detector.py  # Detector emocional con DeepFace
 ├── scripts/
-│   └── run_webcam_demo.py   # Demo de captura de webcam
+│   └── run_webcam_demo.py   # Demo de webcam + reconocimiento emocional
 └── .gitignore
 ```
 
@@ -38,9 +41,9 @@ cd backend
 pip install -r requirements.txt
 ```
 
-## 🎥 Demo de Webcam
+## 🎥 Demo de Webcam con Reconocimiento Emocional
 
-Para probar la captura de webcam:
+Para probar la captura de webcam con detección de emociones en tiempo real:
 
 ```bash
 # Desde la raíz del proyecto
@@ -48,6 +51,9 @@ python backend/scripts/run_webcam_demo.py
 ```
 
 **Controles:**
+- Presiona `q` para salir del demo
+
+**Nota:** La primera ejecución puede tardar más tiempo ya que DeepFace descarga los modelos preentrenados automáticamente.
 - Presiona `q` para salir del demo
 
 ## 🧪 Verificar instalación
@@ -59,11 +65,13 @@ python backend/src/app.py
 Debería mostrar información sobre la aplicación sin errores.
 
 ## 📦 Dependencias Actuales
+- **deepface**: Reconocimiento emocional facial con modelos preentrenados
 
 - **opencv-python**: Captura y procesamiento de video
 - **numpy**: Manejo de arrays y frames
+ los Módulos
 
-## 🔧 Uso del Módulo WebcamCapture
+### WebcamCapture
 
 ```python
 from core.camera import WebcamCapture
@@ -85,6 +93,36 @@ with WebcamCapture() as webcam:
     if success:
         # Procesar frame...
         pass
+```
+
+###x] ~~Implementar captura de webcam~~
+- [x] ~~Integrar modelo de reconocimiento emocional (DeepFace)~~
+- [ ] Implementar API Flask
+```python
+from core.emotion import DeepFaceEmotionDetector
+
+# Crear detector
+detector = DeepFaceEmotionDetector(enforce_detection=False)
+
+# Predecir emoción en un frame
+result = detector.predict(frame)
+
+print(f"Emoción: {result['emotion']}")
+print(f"Rostro detectado: {result['face_detected']}")
+print(f"Probabilidades: {result['probabilities']}")
+
+# Obtener etiqueta en español
+emotion_es = detector.get_emotion_label_spanish(result['emotion'])
+```
+
+**Emociones soportadas:**
+- `angry` (enfadado)
+- `disgust` (asco)
+- `fear` (miedo)
+- `happy` (feliz)
+- `sad` (triste)
+- `surprise` (sorpresa)
+- `neutral` (neutral)     pass
 ```
 
 ## 📝 Próximos Pasos
