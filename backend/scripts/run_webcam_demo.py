@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 import cv2
 from core.camera import WebcamCapture
 from core.emotion import DeepFaceEmotionDetector
+from core.va import emotion_to_va
 
 
 def main():
@@ -58,6 +59,8 @@ def main():
         current_emotion = 'neutral'
         face_detected = False
         probabilities = {}
+        valence = 0.0
+        arousal = 0.0
         
         # Bucle principal de captura y detección
         while True:
@@ -77,11 +80,14 @@ def main():
                 current_emotion = emotion_result['emotion']
                 face_detected = emotion_result['face_detected']
                 probabilities = emotion_result['probabilities']
+                
+                # Convertir emoción a coordenadas Valence-Arousal
+                valence, arousal = emotion_to_va(current_emotion)
             
             # Dibujar información sobre el frame
             # Fondo semi-transparente para el texto
             overlay = frame.copy()
-            cv2.rectangle(overlay, (10, 10), (500, 140), (0, 0, 0), -1)
+            cv2.rectangle(overlay, (10, 10), (500, 200), (0, 0, 0), -1)
             cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
             
             # Texto de emoción o estado
@@ -132,11 +138,24 @@ def main():
                     cv2.LINE_AA
                 )
             
+            # Mostrar coordenadas Valence-Arousal
+            va_text = f"V: {valence:+.2f}  A: {arousal:+.2f}"
+            cv2.putText(
+                frame,
+                va_text,
+                (20, 145),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (100, 200, 255),  # Color amarillo-naranja
+                2,
+                cv2.LINE_AA
+            )
+            
             # Información de control
             cv2.putText(
                 frame,
                 "Presiona 'q' para salir",
-                (20, 135),
+                (20, 175),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.4,
                 (200, 200, 200),
