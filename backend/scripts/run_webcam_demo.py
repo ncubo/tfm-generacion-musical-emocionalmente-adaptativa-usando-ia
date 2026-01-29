@@ -1,9 +1,8 @@
 """
 Script de demostración de captura de webcam con reconocimiento emocional.
 
-Este script muestra cómo utilizar la clase WebcamCapture junto con
-DeepFaceEmotionDetector para capturar video en tiempo real desde la webcam
-y detectar emociones faciales.
+Este script utiliza el EmotionPipeline integrado que conecta captura de video,
+detección emocional facial y mapeo a coordenadas Valence-Arousal en tiempo real.
 
 Uso:
     python backend/scripts/run_webcam_demo.py
@@ -22,6 +21,7 @@ import cv2
 from core.camera import WebcamCapture
 from core.emotion import DeepFaceEmotionDetector
 from core.va import emotion_to_va
+from core.pipeline import EmotionPipeline
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
     Función principal del script de demostración.
     
     Captura video de la webcam, detecta emociones faciales usando DeepFace,
-    dibuja información sobre los frames y muestra la ventana hasta que
+    mapea a coordenadas VA y dibuja información sobre los frames hasta que
     el usuario presione 'q'.
     """
     print("=" * 70)
@@ -38,31 +38,33 @@ def main():
     print("\nPresiona 'q' para salir")
     print("\nNOTA: La primera detección puede tardar unos segundos (carga de modelos)\n")
     
-    # Crear instancias de captura de webcam y detector emocional
+    # Crear componentes del pipeline
     webcam = WebcamCapture(camera_index=0)
     emotion_detector = DeepFaceEmotionDetector(enforce_detection=False)
     
+    # Crear pipeline integrado con suavizado temporal (ventana de 5 frames)
+    pipeline = EmotionPipeline(
+        camera=webcam,
+        emotion_detector=emotion_detector,
+        va_mapper=emotion_to_va,
+        window_size=5
+    )
+    
     try:
-        # Iniciar la cámara
-        webcam.start()
+        # Iniciar el pipeline
+        pipeline.start()
         
         # Obtener y mostrar propiedades de la cámara
         props = webcam.get_properties()
         print(f"Propiedades de la cámara:")
         print(f"  - Resolución: {props.get('width')}x{props.get('height')}")
         print(f"  - FPS: {props.get('fps')}")
+        print(f"  - Suavizado temporal: ventana de 5 frames")
         print()
         
         frame_count = 0
         
-        # Inicializar variables de detección emocional
-        current_emotion = 'neutral'
-        face_detected = False
-        probabilities = {}
-        valence = 0.0
-        arousal = 0.0
-        
-        # Bucle principal de captura y detección
+        # Bucle principal de captura y procesamiento
         while True:
             # Leer frame de la cámara
             success, frame = webcam.read()
@@ -73,16 +75,23 @@ def main():
             
             frame_count += 1
             
-            # Detectar emoción en el frame (cada N frames para mejorar performance)
+            # Procesar frame con el pipeline (cada N frames para mejorar performance)
             # Para mejorar FPS, solo analizamos cada 10 frames
             if frame_count % 10 == 0 or frame_count == 1:
-                emotion_result = emotion_detector.predict(frame)
-                current_emotion = emotion_result['emotion']
-                face_detected = emotion_result['face_detected']
-                probabilities = emotion_result['probabilities']
-                
-                # Convertir emoción a coordenadas Valence-Arousal
-                valence, arousal = emotion_to_va(current_emotion)
+                result = pipeline.step()
+                current_emotion = result['emotion']
+                face_detected = result['face_detected']
+                probabilities = result['probabilities']
+                valence = result['valence']
+                arousal = result['arousal']
+            else:
+                # Mantener último estado conocido
+                state = pipeline.get_current_state()
+                current_emotion = state['emotion']
+                face_detected = state['face_detected']
+                probabilities = state.get('probabilities', {})
+                valence = state['valence']
+                arousal = state['arousal']
             
             # Dibujar información sobre el frame
             # Fondo semi-transparente para el texto
@@ -190,7 +199,7 @@ def main():
         
     finally:
         # Liberar recursos
-        webcam.release()
+        pipeline.stop()
         cv2.destroyAllWindows()
         print("✓ Recursos liberados correctamente")
 
