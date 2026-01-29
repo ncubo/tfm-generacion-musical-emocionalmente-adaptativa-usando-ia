@@ -8,6 +8,7 @@ utilizando la librería DeepFace con modelos preentrenados.
 import numpy as np
 from typing import Dict, Optional
 from deepface import DeepFace
+from .schema import normalize_emotion
 
 
 class DeepFaceEmotionDetector:
@@ -105,8 +106,11 @@ class DeepFaceEmotionDetector:
             dominant_emotion = result['dominant_emotion']
             emotion_probabilities = result['emotion']
             
+            # Normalizar la emoción al conjunto estándar del sistema
+            normalized_emotion = normalize_emotion(dominant_emotion)
+            
             return {
-                'emotion': dominant_emotion,
+                'emotion': normalized_emotion,
                 'probabilities': emotion_probabilities,
                 'face_detected': True
             }
