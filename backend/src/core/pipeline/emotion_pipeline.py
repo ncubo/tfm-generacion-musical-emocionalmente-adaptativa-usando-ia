@@ -95,7 +95,7 @@ class EmotionPipeline:
     
     def step(self) -> Dict[str, any]:
         """
-        Ejecuta un paso del pipeline: captura → detección → normalización → mapeo → suavizado.
+        Ejecuta un paso del pipeline: captura -> deteccion -> normalizacion -> mapeo -> suavizado.
         
         Proceso:
         1. Captura un frame de la cámara

@@ -34,8 +34,8 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     Intuición del mapeo:
         - Arousal controla la energía musical (tempo, densidad, ritmo, velocidad)
         - Valence controla la cualidad afectiva (modo y registro tonal)
-        - Alta activación → música más rápida, densa, compleja y fuerte
-        - Valencia positiva → modos mayores y registros más agudos
+        - Alta activacion -> musica mas rapida, densa, compleja y fuerte
+        - Valencia positiva -> modos mayores y registros mas agudos
     
     Args:
         v (float): Valence (valencia) en rango [-1, 1]
@@ -79,31 +79,31 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     
     # ===== TEMPO =====
     # El arousal controla directamente la velocidad del tempo
-    # Bajo arousal (calma) → tempos lentos (~60 BPM)
-    # Alto arousal (energía) → tempos rápidos (~180 BPM)
+    # Bajo arousal (calma) -> tempos lentos (~60 BPM)
+    # Alto arousal (energia) -> tempos rapidos (~180 BPM)
     tempo_bpm = int(lerp(60, 180, t_a))
     
     # ===== MODO =====
     # La valencia determina el modo musical
-    # Valence positiva → modo mayor (sonido alegre/brillante)
-    # Valence negativa → modo menor (sonido triste/oscuro)
+    # Valence positiva -> modo mayor (sonido alegre/brillante)
+    # Valence negativa -> modo menor (sonido triste/oscuro)
     mode = "major" if v >= 0 else "minor"
     
     # ===== DENSIDAD =====
     # El arousal controla la densidad de notas
-    # Bajo arousal → pocas notas (música espaciada)
-    # Alto arousal → muchas notas (música densa)
+    # Bajo arousal -> pocas notas (musica espaciada)
+    # Alto arousal -> muchas notas (musica densa)
     density = lerp(0.2, 1.0, t_a)
     
     # ===== RANGO TONAL =====
     # Registro (centro tonal): sube con valencia
-    # Valencia baja → registro grave (C4 = MIDI 60)
-    # Valencia alta → registro agudo (C5 = MIDI 72)
+    # Valencia baja -> registro grave (C4 = MIDI 60)
+    # Valencia alta -> registro agudo (C5 = MIDI 72)
     pitch_center = lerp(60, 72, t_v)
     
     # Amplitud (span): sube con arousal
-    # Bajo arousal → rango estrecho (1 octava = 12 semitonos)
-    # Alto arousal → rango amplio (2 octavas = 24 semitonos)
+    # Bajo arousal -> rango estrecho (1 octava = 12 semitonos)
+    # Alto arousal -> rango amplio (2 octavas = 24 semitonos)
     span = lerp(12, 24, t_a)
     
     # Calcular límites del rango tonal
@@ -123,19 +123,19 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     
     # ===== COMPLEJIDAD RÍTMICA =====
     # El arousal controla la complejidad del ritmo
-    # Bajo arousal → ritmos simples (negras, blancas)
-    # Alto arousal → ritmos complejos (corcheas, tresillos, síncopas)
+    # Bajo arousal -> ritmos simples (negras, blancas)
+    # Alto arousal -> ritmos complejos (corcheas, tresillos, sincopas)
     rhythm_complexity = lerp(0.0, 1.0, t_a)
     
     # ===== VELOCITY (Intensidad de las notas) =====
     # La velocity aumenta principalmente con arousal, con un bonus de valencia
-    # Arousal alto → notas más fuertes (más impacto)
-    # Valencia positiva → ligero incremento en brillo/intensidad
+    # Arousal alto -> notas mas fuertes (mas impacto)
+    # Valencia positiva -> ligero incremento en brillo/intensidad
     vel = 40 + 60 * t_a + 20 * t_v
     velocity_mean = int(clamp(vel, 40, 120))
     
-    # La variación de velocity también sube con arousal
-    # Arousal alto → mayor variación dinámica
+    # La variacion de velocity tambien sube con arousal
+    # Arousal alto -> mayor variacion dinamica
     velocity_spread = int(clamp(lerp(0, 30, t_a), 0, 30))
     
     # Construir diccionario de parámetros

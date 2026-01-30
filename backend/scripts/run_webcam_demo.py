@@ -166,13 +166,13 @@ def main():
             
             # Salir si se presiona 'q'
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                print("\n✓ Saliendo del demo...")
+                print("\n[OK] Saliendo del demo...")
                 break
         
-        print(f"✓ Total de frames procesados: {frame_count}")
+        print(f"[OK] Total de frames procesados: {frame_count}")
         
     except RuntimeError as e:
-        print(f"✗ Error: {e}")
+        print(f"[ERROR] Error: {e}")
         print("\nSoluciones posibles:")
         print("  1. Verifica que la webcam esté conectada")
         print("  2. Asegúrate de que ninguna otra aplicación esté usando la cámara")
@@ -180,10 +180,10 @@ def main():
         sys.exit(1)
         
     except KeyboardInterrupt:
-        print("\n\n✓ Interrumpido por el usuario")
+        print("\n\n[OK] Interrumpido por el usuario")
         
     except Exception as e:
-        print(f"\n✗ Error inesperado: {e}")
+        print(f"\n[ERROR] Error inesperado: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -192,7 +192,7 @@ def main():
         # Liberar recursos
         pipeline.stop()
         cv2.destroyAllWindows()
-        print("✓ Recursos liberados correctamente")
+        print("[OK] Recursos liberados correctamente")
 
 
 if __name__ == "__main__":

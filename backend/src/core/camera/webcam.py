@@ -59,7 +59,7 @@ class WebcamCapture:
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             
             self.is_opened = True
-            print(f"✓ Cámara {self.camera_index} abierta correctamente")
+            print(f"[OK] Cámara {self.camera_index} abierta correctamente")
             return True
             
         except Exception as e:
@@ -86,7 +86,7 @@ class WebcamCapture:
         success, frame = self.cap.read()
         
         if not success:
-            print("⚠ Advertencia: No se pudo leer el frame de la cámara")
+            print("[WARN] Advertencia: No se pudo leer el frame de la cámara")
             return False, None
         
         return success, frame
@@ -101,7 +101,7 @@ class WebcamCapture:
         if self.cap is not None:
             self.cap.release()
             self.is_opened = False
-            print("✓ Recursos de cámara liberados")
+            print("[OK] Recursos de cámara liberados")
     
     def get_properties(self) -> dict:
         """

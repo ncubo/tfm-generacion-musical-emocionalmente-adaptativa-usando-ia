@@ -96,7 +96,7 @@ def main():
         # Iniciar pipeline
         print("Iniciando captura de webcam...")
         pipeline.start()
-        print("✓ Cámara iniciada correctamente")
+        print("[OK] Camara iniciada correctamente")
         print()
         
         # Capturar emociones durante el tiempo especificado
@@ -128,7 +128,7 @@ def main():
             time.sleep(0.033)  # ~30 FPS
         
         print()
-        print(f"✓ Captura completada: {sample_count} muestras procesadas")
+        print(f"[OK] Captura completada: {sample_count} muestras procesadas")
         print()
         
         # Calcular promedios
@@ -168,7 +168,7 @@ def main():
         
         print()
         print("=" * 70)
-        print("✓ GENERACIÓN COMPLETADA")
+        print("[OK] GENERACION COMPLETADA")
         print("=" * 70)
         print(f"Archivo MIDI guardado en: {output_path}")
         print()
@@ -176,7 +176,7 @@ def main():
         print()
         
     except RuntimeError as e:
-        print(f"✗ Error: {e}")
+        print(f"[ERROR] Error: {e}")
         print()
         print("Soluciones posibles:")
         print("  1. Verifica que la webcam esté conectada")
@@ -187,10 +187,10 @@ def main():
     except KeyboardInterrupt:
         print()
         print()
-        print("✓ Interrumpido por el usuario")
+        print("[OK] Interrumpido por el usuario")
         
     except Exception as e:
-        print(f"✗ Error inesperado: {e}")
+        print(f"[ERROR] Error inesperado: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -198,7 +198,7 @@ def main():
     finally:
         # Liberar recursos
         pipeline.stop()
-        print("✓ Recursos liberados correctamente")
+        print("[OK] Recursos liberados correctamente")
         print()
 
 
