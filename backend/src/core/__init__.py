@@ -5,7 +5,7 @@ Este paquete contiene todos los componentes fundamentales del sistema:
 - camera: Captura de video desde webcam
 - emotion: Detección y normalización emocional
 - va: Mapeo de emociones a espacio Valence-Arousal
-- music: Conversión de coordenadas VA a parámetros musicales
+- music: Conversión de coordenadas VA a parámetros musicales y generación MIDI
 - pipeline: Orquestación del flujo completo
 - utils: Utilidades matemáticas comunes
 """
@@ -21,7 +21,7 @@ from . import utils
 from .camera import WebcamCapture
 from .emotion import DeepFaceEmotionDetector, normalize_emotion
 from .va import emotion_to_va
-from .music import va_to_music_params
+from .music import va_to_music_params, generate_midi_baseline
 from .pipeline import EmotionPipeline
 
 __all__ = [
@@ -36,5 +36,6 @@ __all__ = [
     'normalize_emotion',
     'emotion_to_va',
     'va_to_music_params',
+    'generate_midi_baseline',
     'EmotionPipeline',
 ]

@@ -7,3 +7,6 @@ opencv-python>=4.8.1.78
 # Dependencias para reconocimiento emocional facial
 tf-keras  # Requerido por DeepFace con TensorFlow 2.17+
 deepface
+
+# Dependencias para generación MIDI
+mido>=1.3.0
