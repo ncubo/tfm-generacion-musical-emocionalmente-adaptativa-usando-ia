@@ -9,6 +9,7 @@ capacidades de validación, clamping y suavizado temporal.
 from typing import Tuple, Optional
 from collections import deque
 from .va_table import get_va_coordinates
+from ..utils import clamp_va
 
 # Tipo para coordenadas VA
 VACoordinates = Tuple[float, float]
@@ -50,36 +51,6 @@ def emotion_to_va(emotion: str) -> VACoordinates:
     # Obtener coordenadas de la tabla
     # Si no existe, get_va_coordinates devuelve (0.0, 0.0) por defecto
     return get_va_coordinates(emotion.lower().strip())
-
-
-def clamp_va(valence: float, arousal: float) -> VACoordinates:
-    """
-    Asegura que los valores de valence y arousal estén en el rango [-1, 1].
-    
-    Esta función es útil para validar o corregir coordenadas VA que puedan
-    haber sido modificadas por cálculos externos (ej. interpolación, 
-    transformaciones) y garantizar que permanezcan dentro del rango válido.
-    
-    Args:
-        valence (float): Valor de valencia a restringir
-        arousal (float): Valor de arousal a restringir
-    
-    Returns:
-        VACoordinates: Tupla (valence, arousal) con valores en [-1, 1]
-    
-    Examples:
-        >>> clamp_va(0.5, 0.8)
-        (0.5, 0.8)
-        
-        >>> clamp_va(1.5, -0.3)
-        (1.0, -0.3)
-        
-        >>> clamp_va(-2.0, 1.2)
-        (-1.0, 1.0)
-    """
-    clamped_v = max(-1.0, min(1.0, valence))
-    clamped_a = max(-1.0, min(1.0, arousal))
-    return (clamped_v, clamped_a)
 
 
 class EmotionVAMapper:

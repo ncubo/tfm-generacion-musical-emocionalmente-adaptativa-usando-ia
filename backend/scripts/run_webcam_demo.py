@@ -23,6 +23,11 @@ from core.emotion import DeepFaceEmotionDetector
 from core.pipeline import EmotionPipeline
 
 
+# Configuración del demo
+WINDOW_SIZE = 15  # Tamaño de ventana para suavizado temporal
+ANALYSIS_INTERVAL = 5  # Analizar cada N frames para mejor rendimiento
+
+
 def main():
     """
     Función principal del script de demostración.
@@ -41,12 +46,12 @@ def main():
     webcam = WebcamCapture(camera_index=0)
     detector = DeepFaceEmotionDetector(enforce_detection=False)
     
-    # Crear pipeline integrado con suavizado temporal (ventana de 10 frames)
+    # Crear pipeline integrado con suavizado temporal
     # Mayor window_size = cambios más graduales y suaves
     pipeline = EmotionPipeline(
         camera=webcam,
         detector=detector,
-        window_size=15
+        window_size=WINDOW_SIZE
     )
     
     try:
@@ -58,8 +63,8 @@ def main():
         print(f"Propiedades de la cámara:")
         print(f"  - Resolución: {props.get('width')}x{props.get('height')}")
         print(f"  - FPS: {props.get('fps')}")
-        print(f"  - Suavizado temporal: ventana de 10 frames")
-        print(f"  - Análisis cada 5 frames (para mejor rendimiento)")
+        print(f"  - Suavizado temporal: ventana de {WINDOW_SIZE} frames")
+        print(f"  - Análisis cada {ANALYSIS_INTERVAL} frames (para mejor rendimiento)")
         print()
         
         frame_count = 0
@@ -79,9 +84,9 @@ def main():
             
             frame_count += 1
             
-            # Procesar frame con el pipeline cada 5 frames para mejor rendimiento
+            # Procesar frame con el pipeline periódicamente para mejor rendimiento
             # Esto también ayuda a estabilizar las detecciones
-            if frame_count % 5 == 0 or frame_count == 1:
+            if frame_count % ANALYSIS_INTERVAL == 0 or frame_count == 1:
                 result = pipeline.step()
                 
                 # Extraer datos del resultado
