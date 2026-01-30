@@ -20,7 +20,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 import cv2
 from core.camera import WebcamCapture
 from core.emotion import DeepFaceEmotionDetector
-from core.va import emotion_to_va
 from core.pipeline import EmotionPipeline
 
 
@@ -40,14 +39,14 @@ def main():
     
     # Crear componentes del pipeline
     webcam = WebcamCapture(camera_index=0)
-    emotion_detector = DeepFaceEmotionDetector(enforce_detection=False)
+    detector = DeepFaceEmotionDetector(enforce_detection=False)
     
-    # Crear pipeline integrado con suavizado temporal (ventana de 5 frames)
+    # Crear pipeline integrado con suavizado temporal (ventana de 10 frames)
+    # Mayor window_size = cambios más graduales y suaves
     pipeline = EmotionPipeline(
         camera=webcam,
-        emotion_detector=emotion_detector,
-        va_mapper=emotion_to_va,
-        window_size=5
+        detector=detector,
+        window_size=15
     )
     
     try:
@@ -59,87 +58,85 @@ def main():
         print(f"Propiedades de la cámara:")
         print(f"  - Resolución: {props.get('width')}x{props.get('height')}")
         print(f"  - FPS: {props.get('fps')}")
-        print(f"  - Suavizado temporal: ventana de 5 frames")
+        print(f"  - Suavizado temporal: ventana de 10 frames")
+        print(f"  - Análisis cada 5 frames (para mejor rendimiento)")
         print()
         
         frame_count = 0
+        current_emotion = 'neutral'
+        current_valence = 0.0
+        current_arousal = 0.0
+        current_scores = {}
         
         # Bucle principal de captura y procesamiento
         while True:
             # Leer frame de la cámara
             success, frame = webcam.read()
             
-            if not success:
+            if not success or frame is None:
                 print("Error: No se pudo leer el frame")
                 break
             
             frame_count += 1
             
-            # Procesar frame con el pipeline (cada N frames para mejorar performance)
-            # Para mejorar FPS, solo analizamos cada 10 frames
-            if frame_count % 10 == 0 or frame_count == 1:
+            # Procesar frame con el pipeline cada 5 frames para mejor rendimiento
+            # Esto también ayuda a estabilizar las detecciones
+            if frame_count % 5 == 0 or frame_count == 1:
                 result = pipeline.step()
+                
+                # Extraer datos del resultado
                 current_emotion = result['emotion']
-                face_detected = result['face_detected']
-                probabilities = result['probabilities']
-                valence = result['valence']
-                arousal = result['arousal']
-            else:
-                # Mantener último estado conocido
-                state = pipeline.get_current_state()
-                current_emotion = state['emotion']
-                face_detected = state['face_detected']
-                probabilities = state.get('probabilities', {})
-                valence = state['valence']
-                arousal = state['arousal']
+                current_valence = result['valence']
+                current_arousal = result['arousal']
+                current_scores = result['scores']
+            
+            # Usar los últimos valores conocidos
+            emotion = current_emotion
+            valence = current_valence
+            arousal = current_arousal
+            scores = current_scores
             
             # Dibujar información sobre el frame
             # Fondo semi-transparente para el texto
             overlay = frame.copy()
-            cv2.rectangle(overlay, (10, 10), (500, 200), (0, 0, 0), -1)
+            cv2.rectangle(overlay, (10, 10), (450, 140), (0, 0, 0), -1)
             cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
             
-            # Texto de emoción o estado
-            if face_detected:
-                # Obtener etiqueta en español para visualización
-                emotion_spanish = emotion_detector.get_emotion_label_spanish(current_emotion)
-                display_text = f"Emocion: {emotion_spanish}"
-                emotion_color = (0, 255, 0)  # Verde
-            else:
-                display_text = "Sin rostro detectado"
-                emotion_color = (0, 165, 255)  # Naranja
-            
+            # Texto de emoción en español
+            emotion_spanish = detector.get_emotion_label_spanish(emotion)
+            emotion_text = f"Emocion: {emotion_spanish}"
             cv2.putText(
                 frame,
-                display_text,
-                (20, 50),
+                emotion_text,
+                (20, 45),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                1.0,
-                emotion_color,
+                0.8,
+                (0, 255, 0),
                 2,
                 cv2.LINE_AA
             )
             
-            # Estado de detección de rostro
-            face_status = "Rostro detectado" if face_detected else "Sin rostro"
+            # Mostrar coordenadas Valence-Arousal
+            va_text = f"V: {valence:+.2f}  A: {arousal:+.2f}"
             cv2.putText(
                 frame,
-                face_status,
-                (20, 85),
+                va_text,
+                (20, 80),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (255, 255, 255),
-                1,
+                0.7,
+                (100, 200, 255),
+                2,
                 cv2.LINE_AA
             )
             
-            # Probabilidad de la emoción dominante (si hay rostro)
-            if face_detected and probabilities:
-                prob_value = probabilities.get(current_emotion, 0)
+            # Mostrar top-1 score si existe
+            if scores:
+                top_score = max(scores.values()) if scores else 0.0
+                score_text = f"Confianza: {top_score:.1f}%"
                 cv2.putText(
                     frame,
-                    f"Confianza: {prob_value:.1f}%",
-                    (20, 115),
+                    score_text,
+                    (20, 110),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
                     (255, 255, 255),
@@ -147,24 +144,11 @@ def main():
                     cv2.LINE_AA
                 )
             
-            # Mostrar coordenadas Valence-Arousal
-            va_text = f"V: {valence:+.2f}  A: {arousal:+.2f}"
-            cv2.putText(
-                frame,
-                va_text,
-                (20, 145),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (100, 200, 255),  # Color amarillo-naranja
-                2,
-                cv2.LINE_AA
-            )
-            
             # Información de control
             cv2.putText(
                 frame,
                 "Presiona 'q' para salir",
-                (20, 175),
+                (20, 130),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.4,
                 (200, 200, 200),
@@ -195,6 +179,8 @@ def main():
         
     except Exception as e:
         print(f"\n✗ Error inesperado: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
         
     finally:
