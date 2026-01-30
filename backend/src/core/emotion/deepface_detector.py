@@ -40,8 +40,8 @@ class DeepFaceEmotionDetector:
                                      Si es False (default), devuelve neutral sin error.
         """
         self.enforce_detection = enforce_detection
-        print("✓ DeepFaceEmotionDetector inicializado")
-        print("  Nota: La primera predicción puede tardar más (carga de modelos)")
+        print("[OK] DeepFaceEmotionDetector inicializado")
+        print("  Nota: La primera prediccion puede tardar mas (carga de modelos)")
     
     def predict(self, frame: np.ndarray) -> Dict[str, any]:
         """
@@ -126,7 +126,7 @@ class DeepFaceEmotionDetector:
         
         except Exception as e:
             # Cualquier otro error (formato de imagen incorrecto, etc.)
-            print(f"⚠ Error en detección emocional: {str(e)}")
+            print(f"[WARN] Error en deteccion emocional: {str(e)}")
             return {
                 'emotion': 'neutral',
                 'probabilities': {},

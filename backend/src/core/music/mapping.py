@@ -20,79 +20,7 @@ Referencias:
 """
 
 from typing import Dict
-
-
-def clamp(x: float, lo: float, hi: float) -> float:
-    """
-    Restringe un valor al rango [lo, hi].
-    
-    Args:
-        x (float): Valor a restringir
-        lo (float): Límite inferior
-        hi (float): Límite superior
-    
-    Returns:
-        float: Valor restringido al rango [lo, hi]
-    
-    Examples:
-        >>> clamp(5.0, 0.0, 10.0)
-        5.0
-        >>> clamp(15.0, 0.0, 10.0)
-        10.0
-        >>> clamp(-5.0, 0.0, 10.0)
-        0.0
-    """
-    return max(lo, min(hi, x))
-
-
-def lerp(lo: float, hi: float, t: float) -> float:
-    """
-    Interpolación lineal entre dos valores.
-    
-    Calcula: lo + (hi - lo) * t
-    
-    Args:
-        lo (float): Valor inicial (cuando t=0)
-        hi (float): Valor final (cuando t=1)
-        t (float): Factor de interpolación [0, 1]
-    
-    Returns:
-        float: Valor interpolado
-    
-    Examples:
-        >>> lerp(0.0, 100.0, 0.5)
-        50.0
-        >>> lerp(60, 180, 0.0)
-        60.0
-        >>> lerp(60, 180, 1.0)
-        180.0
-    """
-    return lo + (hi - lo) * t
-
-
-def to_unit(x: float) -> float:
-    """
-    Convierte de rango [-1, 1] a rango [0, 1] con clamping.
-    
-    Fórmula: (x + 1) / 2, restringido a [0, 1]
-    
-    Args:
-        x (float): Valor en rango [-1, 1] (se acepta fuera de rango)
-    
-    Returns:
-        float: Valor normalizado en [0, 1]
-    
-    Examples:
-        >>> to_unit(-1.0)
-        0.0
-        >>> to_unit(0.0)
-        0.5
-        >>> to_unit(1.0)
-        1.0
-        >>> to_unit(2.0)  # Fuera de rango
-        1.0
-    """
-    return clamp((x + 1.0) / 2.0, 0.0, 1.0)
+from ..utils import clamp, lerp, to_unit
 
 
 def va_to_music_params(v: float, a: float) -> Dict[str, any]:
@@ -106,8 +34,8 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     Intuición del mapeo:
         - Arousal controla la energía musical (tempo, densidad, ritmo, velocidad)
         - Valence controla la cualidad afectiva (modo y registro tonal)
-        - Alta activación → música más rápida, densa, compleja y fuerte
-        - Valencia positiva → modos mayores y registros más agudos
+        - Alta activacion -> musica mas rapida, densa, compleja y fuerte
+        - Valencia positiva -> modos mayores y registros mas agudos
     
     Args:
         v (float): Valence (valencia) en rango [-1, 1]
@@ -151,31 +79,31 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     
     # ===== TEMPO =====
     # El arousal controla directamente la velocidad del tempo
-    # Bajo arousal (calma) → tempos lentos (~60 BPM)
-    # Alto arousal (energía) → tempos rápidos (~180 BPM)
+    # Bajo arousal (calma) -> tempos lentos (~60 BPM)
+    # Alto arousal (energia) -> tempos rapidos (~180 BPM)
     tempo_bpm = int(lerp(60, 180, t_a))
     
     # ===== MODO =====
     # La valencia determina el modo musical
-    # Valence positiva → modo mayor (sonido alegre/brillante)
-    # Valence negativa → modo menor (sonido triste/oscuro)
+    # Valence positiva -> modo mayor (sonido alegre/brillante)
+    # Valence negativa -> modo menor (sonido triste/oscuro)
     mode = "major" if v >= 0 else "minor"
     
     # ===== DENSIDAD =====
     # El arousal controla la densidad de notas
-    # Bajo arousal → pocas notas (música espaciada)
-    # Alto arousal → muchas notas (música densa)
+    # Bajo arousal -> pocas notas (musica espaciada)
+    # Alto arousal -> muchas notas (musica densa)
     density = lerp(0.2, 1.0, t_a)
     
     # ===== RANGO TONAL =====
     # Registro (centro tonal): sube con valencia
-    # Valencia baja → registro grave (C4 = MIDI 60)
-    # Valencia alta → registro agudo (C5 = MIDI 72)
+    # Valencia baja -> registro grave (C4 = MIDI 60)
+    # Valencia alta -> registro agudo (C5 = MIDI 72)
     pitch_center = lerp(60, 72, t_v)
     
     # Amplitud (span): sube con arousal
-    # Bajo arousal → rango estrecho (1 octava = 12 semitonos)
-    # Alto arousal → rango amplio (2 octavas = 24 semitonos)
+    # Bajo arousal -> rango estrecho (1 octava = 12 semitonos)
+    # Alto arousal -> rango amplio (2 octavas = 24 semitonos)
     span = lerp(12, 24, t_a)
     
     # Calcular límites del rango tonal
@@ -195,19 +123,19 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     
     # ===== COMPLEJIDAD RÍTMICA =====
     # El arousal controla la complejidad del ritmo
-    # Bajo arousal → ritmos simples (negras, blancas)
-    # Alto arousal → ritmos complejos (corcheas, tresillos, síncopas)
+    # Bajo arousal -> ritmos simples (negras, blancas)
+    # Alto arousal -> ritmos complejos (corcheas, tresillos, sincopas)
     rhythm_complexity = lerp(0.0, 1.0, t_a)
     
     # ===== VELOCITY (Intensidad de las notas) =====
     # La velocity aumenta principalmente con arousal, con un bonus de valencia
-    # Arousal alto → notas más fuertes (más impacto)
-    # Valencia positiva → ligero incremento en brillo/intensidad
+    # Arousal alto -> notas mas fuertes (mas impacto)
+    # Valencia positiva -> ligero incremento en brillo/intensidad
     vel = 40 + 60 * t_a + 20 * t_v
     velocity_mean = int(clamp(vel, 40, 120))
     
-    # La variación de velocity también sube con arousal
-    # Arousal alto → mayor variación dinámica
+    # La variacion de velocity tambien sube con arousal
+    # Arousal alto -> mayor variacion dinamica
     velocity_spread = int(clamp(lerp(0, 30, t_a), 0, 30))
     
     # Construir diccionario de parámetros

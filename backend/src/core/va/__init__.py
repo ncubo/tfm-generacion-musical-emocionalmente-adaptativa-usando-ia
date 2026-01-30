@@ -10,12 +10,13 @@ Componentes:
     - mapper: Funciones de conversión y utilidades
 """
 
-from .va_table import VA_TABLE
-from .mapper import emotion_to_va, clamp_va, EmotionVAMapper
+from .va_table import VA_TABLE, get_va_coordinates, get_all_emotions
+from .mapper import emotion_to_va, EmotionVAMapper
 
 __all__ = [
     'VA_TABLE',
+    'get_va_coordinates',
+    'get_all_emotions',
     'emotion_to_va',
-    'clamp_va',
     'EmotionVAMapper'
 ]

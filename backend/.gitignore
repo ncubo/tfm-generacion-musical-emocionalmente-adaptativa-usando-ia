@@ -48,5 +48,9 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# MIDI output files
+output/
+*.mid
+
 # mypy
 .mypy_cache/
