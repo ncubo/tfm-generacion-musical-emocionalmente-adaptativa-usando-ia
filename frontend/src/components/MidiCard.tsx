@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { apiClient } from '../api/client';
-import type { GenerateMidiResponse } from '../api/client';
+import type { GenerateMidiResponse } from '../types';
 import { COPIED_MESSAGE_DURATION } from '../utils/constants';
 
 export function MidiCard() {

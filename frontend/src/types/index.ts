@@ -2,13 +2,31 @@
  * Tipos compartidos para la aplicación
  */
 
-// Re-exportar tipos de API para uso en la aplicación
-export type {
-  HealthResponse,
-  EmotionResponse,
-  GenerateMidiRequest,
-  GenerateMidiResponse,
-} from '../api/client';
+// Tipos para las respuestas del backend
+export interface HealthResponse {
+  status: string;
+}
+
+export interface EmotionResponse {
+  emotion: string;
+  valence: number;
+  arousal: number;
+}
+
+export interface GenerateMidiRequest {
+  emotion?: string;
+  valence?: number;
+  arousal?: number;
+  params?: Record<string, unknown>;
+}
+
+export interface GenerateMidiResponse {
+  emotion: string;
+  valence: number;
+  arousal: number;
+  params: Record<string, unknown>;
+  midi_path: string;
+}
 
 // Estados de UI comunes
 export interface LoadingState {

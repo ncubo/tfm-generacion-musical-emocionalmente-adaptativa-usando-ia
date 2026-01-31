@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { apiClient } from '../api/client';
-import type { HealthResponse } from '../api/client';
+import type { HealthResponse } from '../types';
 
 export function StatusCard() {
   const [status, setStatus] = useState<HealthResponse | null>(null);

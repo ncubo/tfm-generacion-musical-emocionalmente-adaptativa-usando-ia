@@ -4,7 +4,7 @@ import { MidiCard } from '../components/MidiCard';
 
 export function LiveDemo() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
+    <div className="min-h-screen bg-linear-to-br from-gray-100 to-gray-200">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

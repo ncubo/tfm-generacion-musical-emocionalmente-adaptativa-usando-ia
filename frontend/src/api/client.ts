@@ -1,33 +1,13 @@
 import { ENV } from '../config/env';
+import type {
+  HealthResponse,
+  EmotionResponse,
+  GenerateMidiRequest,
+  GenerateMidiResponse,
+} from '../types';
 
 // Configuración base para el cliente API
 const API_BASE_URL = ENV.API_BASE_URL;
-
-// Tipos para las respuestas del backend
-export interface HealthResponse {
-  status: string;
-}
-
-export interface EmotionResponse {
-  emotion: string;
-  valence: number;
-  arousal: number;
-}
-
-export interface GenerateMidiRequest {
-  emotion?: string;
-  valence?: number;
-  arousal?: number;
-  params?: Record<string, unknown>;
-}
-
-export interface GenerateMidiResponse {
-  emotion: string;
-  valence: number;
-  arousal: number;
-  params: Record<string, unknown>;
-  midi_path: string;
-}
 
 // Cliente API usando fetch
 class ApiClient {
