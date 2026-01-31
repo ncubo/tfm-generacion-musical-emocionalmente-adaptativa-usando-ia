@@ -10,3 +10,7 @@ deepface
 
 # Dependencias para generación MIDI
 mido>=1.3.0
+
+# Dependencias para API REST
+flask>=3.0.0
+flask-cors>=4.0.0
