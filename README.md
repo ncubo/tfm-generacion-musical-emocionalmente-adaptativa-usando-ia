@@ -39,7 +39,8 @@ El frontend estará disponible en `http://localhost:5173`
 
 - [Backend README](backend/README.md)
 - [Frontend README](frontend/README.md)
-- [API Documentation](backend/API_DOCUMENTATION.md)
+- [Documentación API](backend/DOCUMENTACION_API.md)
+- [Evaluación de Rendimiento](backend/EVALUACION_RENDIMIENTO.md)
 
 ## Tecnologías Principales
 
