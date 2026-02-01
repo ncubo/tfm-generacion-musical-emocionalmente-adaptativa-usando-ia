@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import datetime
 from ..core.music.mapping import va_to_music_params
 from ..core.music.baseline_rules import generate_midi_baseline
+from ..core.utils.metrics import get_metrics
 
 music_bp = Blueprint('music', __name__)
 
@@ -54,32 +55,44 @@ def generate_midi():
         - 500: Error al generar MIDI
     """
     try:
+        # Obtener métricas
+        metrics = get_metrics()
+        
         # Obtener el pipeline del contexto de la aplicación
         pipeline = current_app.config['EMOTION_PIPELINE']
         
-        # Capturar estado emocional actual
-        emotion_result = pipeline.step()
-        
-        emotion = emotion_result['emotion']
-        valence = emotion_result['valence']
-        arousal = emotion_result['arousal']
-        
-        # Mapear coordenadas VA a parámetros musicales
-        music_params = va_to_music_params(valence, arousal)
-        
-        # Construir path de salida con timestamp
-        output_dir = Path(current_app.config['OUTPUT_DIR'])
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        midi_filename = f"emotion_{timestamp}.mid"
-        midi_path = output_dir / midi_filename
-        
-        # Generar archivo MIDI
-        generated_path = generate_midi_baseline(
-            params=music_params,
-            out_path=str(midi_path),
-            length_bars=8,  # 8 compases por defecto
-            seed=None  # Generación aleatoria
-        )
+        # Medir tiempo total del pipeline completo
+        with metrics.measure('total_pipeline', metadata={'endpoint': '/generate-midi'}):
+            # Medir tiempo de detección emocional
+            with metrics.measure('emotion_detection_for_midi'):
+                # Capturar estado emocional actual
+                emotion_result = pipeline.step()
+            
+            emotion = emotion_result['emotion']
+            valence = emotion_result['valence']
+            arousal = emotion_result['arousal']
+            
+            # Medir tiempo de mapeo VA a parámetros musicales
+            with metrics.measure('va_to_music_mapping'):
+                # Mapear coordenadas VA a parámetros musicales
+                music_params = va_to_music_params(valence, arousal)
+            
+            # Construir path de salida con timestamp
+            output_dir = Path(current_app.config['OUTPUT_DIR'])
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            midi_filename = f"emotion_{timestamp}.mid"
+            midi_path = output_dir / midi_filename
+            
+            # Medir tiempo de generación MIDI
+            with metrics.measure('midi_generation', metadata={'emotion': emotion, 'valence': valence, 'arousal': arousal}) as timing:
+                # Generar archivo MIDI
+                length_bars = current_app.config.get('MIDI_LENGTH_BARS', 8)
+                generated_path = generate_midi_baseline(
+                    params=music_params,
+                    out_path=str(midi_path),
+                    length_bars=length_bars,
+                    seed=None  # Generación aleatoria
+                )
         
         # Preparar respuesta
         response = {
@@ -90,11 +103,19 @@ def generate_midi():
             'midi_path': generated_path
         }
         
+        # Opcional: incluir tiempo de procesamiento en la respuesta
+        if current_app.config.get('INCLUDE_METRICS', False):
+            response['processing_time_ms'] = round(timing['duration'] * 1000, 2)
+        
         return jsonify(response), 200
         
     except Exception as e:
-        # Manejo de errores sin crashear el servidor
+        # Log del error para debugging
+        current_app.logger.error(f"Error en /generate-midi: {str(e)}", exc_info=True)
+        
+        # En producción, no exponer detalles internos
+        error_message = str(e) if current_app.debug else 'Error interno del servidor'
         return jsonify({
             'error': 'Error al generar MIDI',
-            'message': str(e)
+            'message': error_message
         }), 500

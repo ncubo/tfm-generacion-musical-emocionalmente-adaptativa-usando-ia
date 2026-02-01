@@ -52,5 +52,10 @@ htmlcov/
 output/
 *.mid
 
+# Metrics and benchmarks (generated files)
+metrics/
+*.csv
+*.json
+
 # mypy
 .mypy_cache/

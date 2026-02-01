@@ -6,6 +6,7 @@ del usuario a través de la webcam.
 """
 
 from flask import Blueprint, jsonify, current_app
+from ..core.utils.metrics import get_metrics
 
 emotion_bp = Blueprint('emotion', __name__)
 
@@ -38,11 +39,16 @@ def detect_emotion():
         - 500: Error interno del servidor
     """
     try:
+        # Obtener métricas
+        metrics = get_metrics()
+        
         # Obtener el pipeline del contexto de la aplicación
         pipeline = current_app.config['EMOTION_PIPELINE']
         
-        # Ejecutar un paso del pipeline
-        result = pipeline.step()
+        # Medir tiempo de ejecución del pipeline emocional
+        with metrics.measure('emotion_detection', metadata={'endpoint': '/emotion'}):
+            # Ejecutar un paso del pipeline
+            result = pipeline.step()
         
         # Extraer solo los campos necesarios para la respuesta
         response = {
@@ -51,12 +57,23 @@ def detect_emotion():
             'arousal': round(result['arousal'], 2)
         }
         
+        # Opcional: incluir tiempo de procesamiento en la respuesta (útil para debugging)
+        # Nota: requiere acceso a las métricas almacenadas
+        if current_app.config.get('INCLUDE_METRICS', False):
+            # Obtener la última medición de emotion_detection
+            if metrics.measurements.get('emotion_detection'):
+                last_duration = metrics.measurements['emotion_detection'][-1]
+                response['processing_time_ms'] = round(last_duration * 1000, 2)
+        
         return jsonify(response), 200
         
     except Exception as e:
-        # En caso de error, retornar un mensaje descriptivo
-        # pero sin exponer detalles internos en producción
+        # Log del error para debugging
+        current_app.logger.error(f"Error en /emotion: {str(e)}", exc_info=True)
+        
+        # En producción, no exponer detalles internos
+        error_message = str(e) if current_app.debug else 'Error interno del servidor'
         return jsonify({
             'error': 'Error al detectar emoción',
-            'message': str(e)
+            'message': error_message
         }), 500

@@ -8,9 +8,6 @@ La API proporciona endpoints para:
 - Detección de emociones desde webcam
 - Generación de música MIDI basada en emociones
 - Monitoreo de salud del servicio
-
-Author: TFM - Master en IA
-Version: 0.2.0
 """
 
 from flask import Flask
