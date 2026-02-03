@@ -14,7 +14,8 @@ IMPORTANTE: La webcam del servidor NO se inicializa al arrancar.
 Solo se activa cuando se necesita (/emotion o /generate-midi).
 """
 
-from flask import Flask
+import os
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from pathlib import Path
 import logging
@@ -53,7 +54,8 @@ def create_app(config=None):
         >>> app.run(debug=True, port=5000)
     """
     # Crear instancia de Flask
-    app = Flask(__name__)
+    # app = Flask(__name__)
+    app = Flask(__name__, static_folder='../../frontend/dist')
     
     # Configuración por defecto
     app.config['OUTPUT_DIR'] = Path(__file__).parent.parent / 'output'
@@ -98,6 +100,15 @@ def create_app(config=None):
                 logger.info("Pipeline emocional detenido")
             except Exception as e:
                 logger.error(f"Error al detener pipeline: {e}")
+
+    # Esto es para servir el frontend en render.com y usar solo un servicio
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve(path):
+        if path != "" and os.path.exists(app.static_folder + '/' + path):
+            return send_from_directory(app.static_folder, path)
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
     
     return app
 

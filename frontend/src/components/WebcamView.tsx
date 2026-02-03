@@ -60,11 +60,7 @@ export function WebcamView({ onSnapshot }: WebcamViewProps) {
         // Guardar referencia del stream para limpieza posterior
         streamRef.current = stream;
 
-        // Conectar stream al elemento video
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
+        // Cambiar estado a 'active' para renderizar el elemento video
         setStatus('active');
       } catch (err) {
         console.error('Error al acceder a la cámara:', err);
@@ -96,6 +92,13 @@ export function WebcamView({ onSnapshot }: WebcamViewProps) {
       }
     };
   }, []); // Solo ejecutar una vez al montar
+
+  // Asignar stream al video cuando esté en el DOM
+  useEffect(() => {
+    if (status === 'active' && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [status]); // Ejecutar cuando cambie el status
 
   // Cleanup del preview URL cuando cambia o al desmontar
   useEffect(() => {
@@ -233,7 +236,8 @@ export function WebcamView({ onSnapshot }: WebcamViewProps) {
               autoPlay
               playsInline
               muted
-              className="w-full h-auto"
+              className="w-full h-auto min-h-[240px]"
+              style={{ objectFit: 'cover' }}
               aria-label="Vista de la cámara web en tiempo real"
             />
           </div>
