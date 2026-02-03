@@ -13,6 +13,13 @@ export interface EmotionResponse {
   arousal: number;
 }
 
+export interface EmotionFromFrameResponse {
+  emotion: string;
+  valence: number;
+  arousal: number;
+  face_detected: boolean;
+}
+
 export interface GenerateMidiRequest {
   emotion?: string;
   valence?: number;

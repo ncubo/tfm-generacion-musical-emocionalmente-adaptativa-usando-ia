@@ -12,6 +12,9 @@ from ..core.music.mapping import va_to_music_params
 from ..core.music.baseline_rules import generate_midi_baseline
 from ..core.utils.metrics import get_metrics
 
+# Importar función de lazy initialization del blueprint de emotion
+from .emotion import _get_or_create_pipeline
+
 music_bp = Blueprint('music', __name__)
 
 
@@ -20,8 +23,11 @@ def generate_midi():
     """
     Genera un archivo MIDI baseline basado en el estado emocional actual.
     
+    NOTA: Este endpoint usa lazy initialization. La webcam solo se activa
+    la primera vez que se necesita detectar emoción desde la webcam del servidor.
+    
     Workflow:
-    1. Captura el estado emocional actual (webcam)
+    1. Captura el estado emocional actual (webcam servidor)
     2. Mapea emoción a coordenadas Valence-Arousal
     3. Convierte coordenadas VA a parámetros musicales
     4. Genera archivo MIDI usando reglas baseline
@@ -52,14 +58,21 @@ def generate_midi():
         }
     
     Error cases:
-        - 500: Error al generar MIDI
+        - 500: Error al generar MIDI o webcam no disponible
     """
     try:
         # Obtener métricas
         metrics = get_metrics()
         
-        # Obtener el pipeline del contexto de la aplicación
-        pipeline = current_app.config['EMOTION_PIPELINE']
+        # Lazy initialization: obtener o crear pipeline
+        try:
+            pipeline = _get_or_create_pipeline()
+        except RuntimeError as e:
+            # Error al inicializar webcam
+            return jsonify({
+                'error': 'No se pudo acceder a la webcam del servidor',
+                'message': str(e)
+            }), 500
         
         # Medir tiempo total del pipeline completo
         with metrics.measure('total_pipeline', metadata={'endpoint': '/generate-midi'}):
