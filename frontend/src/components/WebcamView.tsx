@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../api/client';
 import type { EmotionFromFrameResponse } from '../types';
+import { useRealtimeEmotion } from '../hooks/useRealtimeEmotion';
 
 type WebcamStatus = 'idle' | 'requesting' | 'active' | 'error';
+
+// Opciones de frecuencia para tiempo real
+const FPS_OPTIONS = [
+  { label: '0.5 FPS (2s)', value: 2000 },
+  { label: '1 FPS (1s)', value: 1000 },
+  { label: '2 FPS (0.5s)', value: 500 },
+] as const;
 
 interface WebcamViewProps {
   onSnapshot?: (blob: Blob) => void;
@@ -22,6 +30,18 @@ export function WebcamView({ onSnapshot }: WebcamViewProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [emotionResult, setEmotionResult] = useState<EmotionFromFrameResponse | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // Estados para modo tiempo real
+  const [realtimeEnabled, setRealtimeEnabled] = useState(false);
+  const [realtimeInterval, setRealtimeInterval] = useState(1000); // 1 FPS por defecto
+
+  // Hook de tiempo real
+  const realtimeState = useRealtimeEmotion({
+    videoRef,
+    canvasRef,
+    intervalMs: realtimeInterval,
+    enabled: realtimeEnabled,
+  });
 
   useEffect(() => {
     // Solicitar acceso a la cámara al montar el componente
@@ -220,6 +240,120 @@ export function WebcamView({ onSnapshot }: WebcamViewProps) {
 
           {/* Canvas oculto para captura */}
           <canvas ref={canvasRef} className="hidden" />
+
+          {/* Controles de modo tiempo real */}
+          <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-teal-900 mb-3">Modo Tiempo Real</h3>
+            
+            <div className="space-y-3">
+              {/* Estado actual */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Estado:</span>
+                <span className={`text-sm font-bold ${realtimeState.isRunning ? 'text-teal-700' : 'text-gray-500'}`}>
+                  {realtimeState.isRunning ? '🟢 Activado' : '⚪ Desactivado'}
+                </span>
+              </div>
+
+              {/* Selector de frecuencia */}
+              <div className="flex items-center justify-between">
+                <label htmlFor="fps-selector" className="text-sm font-medium text-gray-700">
+                  Frecuencia:
+                </label>
+                <select
+                  id="fps-selector"
+                  value={realtimeInterval}
+                  onChange={(e) => setRealtimeInterval(Number(e.target.value))}
+                  disabled={realtimeEnabled}
+                  className="px-3 py-1 border border-gray-300 rounded bg-white text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  {FPS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Botones de control */}
+              <div className="flex gap-2">
+                {!realtimeEnabled ? (
+                  <button
+                    onClick={() => setRealtimeEnabled(true)}
+                    className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
+                    aria-label="Iniciar análisis en tiempo real"
+                  >
+                    Iniciar tiempo real
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setRealtimeEnabled(false)}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
+                    aria-label="Detener análisis en tiempo real"
+                  >
+                    ⏹️ Detener tiempo real
+                  </button>
+                )}
+              </div>
+
+              {/* Indicador de análisis */}
+              {/* {realtimeState.isAnalyzing && (
+                <div className="flex items-center gap-2 text-sm text-teal-700">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600"></div>
+                  <span>Analizando...</span>
+                </div>
+              )} */}
+            </div>
+          </div>
+
+          {/* Resultados en tiempo real */}
+          {realtimeState.isRunning && realtimeState.emotion && (
+            <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded">
+              <h3 className="text-lg font-semibold text-teal-900 mb-3">📊 Emoción actual (tiempo real):</h3>
+              
+              {realtimeState.faceDetected ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Emoción:</span>
+                    <span className="text-xl font-bold text-teal-800 capitalize">
+                      {realtimeState.emotion}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Valencia:</span>
+                    <span className="text-lg font-semibold text-blue-700">
+                      {realtimeState.valence?.toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Activación:</span>
+                    <span className="text-lg font-semibold text-orange-700">
+                      {realtimeState.arousal?.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-yellow-700">
+                  <p className="font-semibold">⚠️ No se detecta rostro</p>
+                  <p className="text-sm mt-1">Asegúrate de estar frente a la cámara</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Error en tiempo real */}
+          {realtimeState.error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+              <p className="text-red-800 font-semibold text-sm">Error en tiempo real:</p>
+              <p className="text-sm text-red-600 mt-1">{realtimeState.error}</p>
+            </div>
+          )}
+
+          <div className="my-4 border-t border-gray-300"></div>
+
+          {/* Botones de captura manual */}
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Captura Manual</h3>
 
           {/* Botones de captura */}
           <div className="flex gap-3 mb-4">
