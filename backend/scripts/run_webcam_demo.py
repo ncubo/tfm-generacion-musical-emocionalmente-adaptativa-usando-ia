@@ -24,7 +24,10 @@ from core.pipeline import EmotionPipeline
 
 
 # Configuración del demo
-WINDOW_SIZE = 15  # Tamaño de ventana para suavizado temporal
+# Parámetros de estabilización temporal optimizados para TFM
+WINDOW_SIZE = 7  # Ventana de mayoría para emoción discreta (5-10 frames)
+ALPHA = 0.3  # Factor EMA para V/A (0.1-0.5: más bajo = más suavizado)
+MIN_CONFIDENCE = 60.0  # Confianza mínima (%) para aceptar cambio de emoción
 ANALYSIS_INTERVAL = 5  # Analizar cada N frames para mejor rendimiento
 
 
@@ -33,7 +36,8 @@ def main():
     Función principal del script de demostración.
     
     Captura video de la webcam, detecta emociones faciales usando DeepFace,
-    mapea a coordenadas VA y dibuja información sobre los frames hasta que
+    aplica estabilización temporal (EMA + ventana de mayoría) y mapea a 
+    coordenadas VA, dibujando información sobre los frames hasta que
     el usuario presione 'q'.
     """
     print("=" * 70)
@@ -46,12 +50,16 @@ def main():
     webcam = WebcamCapture(camera_index=0)
     detector = DeepFaceEmotionDetector(enforce_detection=False)
     
-    # Crear pipeline integrado con suavizado temporal
-    # Mayor window_size = cambios más graduales y suaves
+    # Crear pipeline integrado con estabilización temporal mejorada
+    # - window_size: ventana de mayoría para emoción discreta (evita parpadeos)
+    # - alpha: factor EMA para V/A (valores bajos = más suavizado)
+    # - min_confidence: umbral de confianza para cambios de emoción
     pipeline = EmotionPipeline(
         camera=webcam,
         detector=detector,
-        window_size=WINDOW_SIZE
+        window_size=WINDOW_SIZE,
+        alpha=ALPHA,
+        min_confidence=MIN_CONFIDENCE
     )
     
     try:
@@ -63,7 +71,10 @@ def main():
         print(f"Propiedades de la cámara:")
         print(f"  - Resolución: {props.get('width')}x{props.get('height')}")
         print(f"  - FPS: {props.get('fps')}")
-        print(f"  - Suavizado temporal: ventana de {WINDOW_SIZE} frames")
+        print(f"\nEstabilización temporal configurada:")
+        print(f"  - Ventana de mayoría (emoción): {WINDOW_SIZE} frames")
+        print(f"  - Factor EMA (V/A): {ALPHA} (menor = más suavizado)")
+        print(f"  - Confianza mínima: {MIN_CONFIDENCE}%")
         print(f"  - Análisis cada {ANALYSIS_INTERVAL} frames (para mejor rendimiento)")
         print()
         

@@ -55,17 +55,19 @@ pip install -r requirements.txt
 - **deepface**: Framework de reconocimiento emocional facial
 - **mido**: Librería para generación de archivos MIDIal
 
-Muestra la emoción detectada y las coordenadas Valence-Arousal en tiempo real:
+### Demo 1: Reconocimiento Emocional en Tiempo Real
+
+Muestra la emoción detectada y las coordenadas Valence-Arousal en tiempo real con estabilización temporal:
 
 ```bash
 python scripts/run_webcam_demo.py
 ```
 
-Para finalizar la ejecución, presionar la tecla 'q'.
-
-### Demostración 2: Generación de Archivos MIDI desde Captura Emocional
-
-Captura emoción facial
+**Características:**
+- Detección emocional facial en tiempo real
+- Estabilización temporal con EMA + ventana de mayoría
+- Visualización de V/A y confianza
+- Parámetros optimizados para robustez
 
 **Controles:** Presiona `q` para salir
 
@@ -80,6 +82,7 @@ python scripts/generate_baseline_from_webcam.py
 # Personalizado
 python scripts/generate_baseline_from_webcam.py --duration 15 --bars 16 --output mi_musica.mid
 ```
+
 #### Parámetros Disponibles
 
 - `--duration SECONDS`: Duración de la captura emocional en segundos (valor por defecto: 10)
@@ -87,7 +90,6 @@ python scripts/generate_baseline_from_webcam.py --duration 15 --bars 16 --output
 - `--output PATH`: Ruta del archivo MIDI de salida (valor por defecto: output/emotion.mid)
 - `--seed SEED`: Semilla aleatoria para garantizar reproducibilidad (opcional)
 
-### Demostración 3: Generación MIDI de Prueba
 ### Demo 3: Test de Generación MIDI
 
 Genera archivos MIDI de prueba sin webcam:
@@ -98,9 +100,44 @@ python scripts/test_midi_generation.py
 
 Este script genera archivos MIDI para las siguientes emociones: happy, sad, angry, fear, neutral, excited, calm. No requiere webcam y sirve para validar el funcionamiento del generador MIDI.
 
+### Demo 4: Comparación de Estabilidad Temporal
+
+Compara visualmente el sistema con y sin estabilización:
+
+```bash
+python scripts/compare_stability.py
+```
+
+**Características:**
+- Compara dos configuraciones en tiempo real
+- Cambia entre modos con tecla `s`
+- Observa diferencias en estabilidad y responsividad
+
+**Uso recomendado:** Haz expresiones faciales variadas para ver cómo cada configuración responde.
+
+### Demo 5: Análisis Cuantitativo de Estabilidad
+
+Mide métricas objetivas de estabilidad del sistema:
+
+```bash
+# Análisis de 30 segundos por configuración
+python scripts/analyze_stability.py --duration 30
+```
+
+**Métricas calculadas:**
+- Frecuencia de cambios de emoción
+- Varianza de valores V/A
+- Rate of change de V/A
+- Estabilidad de emoción (%)
+
+**Uso:** Mantén expresión neutral 10-15s, luego cambia a otra emoción y mantén 10-15s.
+
 ## Guía de Uso de los Módulos
 
 ### Pipeline de Procesamiento Completo
+
+El pipeline emocional integra captura de video, detección facial, y estabilización temporal mejorada.
+
 ```python
 from core import EmotionPipeline, WebcamCapture, DeepFaceEmotionDetector
 
@@ -108,11 +145,13 @@ from core import EmotionPipeline, WebcamCapture, DeepFaceEmotionDetector
 webcam = WebcamCapture(camera_index=0)
 detector = DeepFaceEmotionDetector()
 
-# Crear pipeline integrado
+# Crear pipeline integrado con estabilización temporal mejorada
 pipeline = EmotionPipeline(
     camera=webcam,
     detector=detector,
-    window_size=10  # Suavizado temporal
+    window_size=7,       # Ventana de mayoría para emoción discreta
+    alpha=0.3,           # Factor EMA para V/A (0.1-1.0)
+    min_confidence=60.0  # Umbral de confianza mínima (%)
 )
 
 # Iniciar
@@ -126,6 +165,13 @@ print(result)
 # Detener
 pipeline.stop()
 ```
+
+**Parámetros de Estabilización:**
+- `window_size`: Tamaño de ventana para mayoría de emoción (5-10 recomendado)
+- `alpha`: Factor de suavizado EMA para V/A (menor = más suave)
+- `min_confidence`: Confianza mínima para aceptar cambios de emoción
+
+Ver [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md) para detalles técnicos.
 
 ### Generación MIDI
 
@@ -149,15 +195,43 @@ output_path = generate_midi_baseline(
 
 print(f"MIDI generado: {output_path}")
 ```
-Arquitectura del Sistema de Mapeo Emocional
-
 ## Arquitectura del Sistema de Mapeo Emocional
 
-### Flujo de Procesamiento: Emoción a
-1. **Detección**: DeepFace detecta emoción facial
-2. **Normalización**: Emoción se normaliza al conjunto estándar
-3. **Mapeo VA**: Emoción → coordenadas (Valence, Arousal)
-4. **Suavizado**: Media móvil temporal para estabilidad
+### Flujo de Procesamiento: Emoción a Música
+
+1. **Captura de Video**: Webcam captura frames en tiempo real
+2. **Detección Facial**: DeepFace detecta emoción facial con scores de confianza
+3. **Normalización**: Emoción se normaliza al conjunto estándar
+4. **Estabilización Temporal**:
+   - **Filtro de Confianza**: Solo acepta detecciones con confianza > umbral
+   - **Ventana de Mayoría**: Emoción discreta se estabiliza por consenso
+   - **EMA para V/A**: Suavizado exponencial de valencia y arousal
+5. **Mapeo VA**: Emoción estable → coordenadas continuas (Valence, Arousal)
+6. **Parámetros Musicales**: Coordenadas VA → parámetros MIDI
+7. **Generación MIDI**: Parámetros → archivo MIDI reproducible
+
+### Mejoras de Estabilidad Temporal
+
+El sistema implementa un **mecanismo dual de estabilización**:
+
+**1. Media Móvil Exponencial (EMA) para Valence-Arousal:**
+- Más responsive que media móvil simple
+- Balance entre suavizado y capacidad de respuesta
+- Configurable mediante parámetro `alpha`
+
+**2. Ventana de Mayoría para Emoción Discreta:**
+- Evita "parpadeos" entre emociones
+- Requiere consenso en ventana temporal
+- Configurable mediante parámetro `window_size`
+
+**3. Filtro de Confianza:**
+- Rechaza detecciones de baja calidad
+- Reduce falsos positivos
+- Configurable mediante parámetro `min_confidence`
+
+**Resultado:** Sistema más robusto y perceptualmente estable sin comprometer latencia.
+
+Ver documentación completa en [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md).
 5. **Parámetros**: VA → parámetros musicales (tempo, modo, densidad, etc.)
 6. **Generación**: Parámetros → archivo MIDI
 
@@ -190,23 +264,3 @@ core/
 - DeepFace descarga automáticamente los modelos preentrenados (aproximadamente 100MB)
 - El proceso de descarga puede tardar varios minutos dependiendo de la conexión
 - Los modelos se almacenan en caché local para ejecuciones posteriores
-
-### Configuración de Permisos
-
-Es necesario otorgar permisos de acceso a la webcam:
-
-- **macOS**: Sistema → Privacidad y Seguridad → Cámara
-- **Windows**: Configuración → Privacidad → Cámara
-- **Linux**: Verificar permisos del dispositivo /dev/video0
-o
-
-- Captura de webcam implementada
-- Reconocimiento emocional facial con DeepFace
-- Normalización de emociones a conjunto estándar
-- Mapeo de emociones a espacio Valence-Arousal
-- Conversión de coordenadas VA a parámetros musicales
-- Pipeline integrado con suavizado temporal
-- Generador MIDI baseline basado en reglas
-- Pendiente: API Flask/FastAPI
-- Pendiente: Generador MIDI con modelos de aprendizaje automático
-**Versión actual:** 0.1.0

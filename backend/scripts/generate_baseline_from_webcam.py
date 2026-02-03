@@ -85,11 +85,14 @@ def main():
     webcam = WebcamCapture(camera_index=0)
     detector = DeepFaceEmotionDetector(enforce_detection=False)
     
-    # Pipeline con suavizado moderado para captura estable
+    # Pipeline con estabilización moderada para captura estable
+    # Mayor window_size y alpha más bajo para máxima estabilidad en captura
     pipeline = EmotionPipeline(
         camera=webcam,
         detector=detector,
-        window_size=10
+        window_size=10,
+        alpha=0.2,
+        min_confidence=70.0
     )
     
     try:

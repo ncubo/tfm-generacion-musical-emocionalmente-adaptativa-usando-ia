@@ -84,16 +84,21 @@ def create_app(config=None):
         detector = DeepFaceEmotionDetector()
         logger.info("Detector de emociones inicializado")
         
-        # Crear pipeline emocional con suavizado temporal
+        # Crear pipeline emocional con estabilización temporal mejorada
+        # - EMA para V/A con alpha=0.3 (balance suavizado/responsividad)
+        # - Ventana de mayoría de 7 frames para emoción discreta
+        # - Umbral de confianza de 60% para cambios de emoción
         pipeline = EmotionPipeline(
             camera=camera,
             detector=detector,
-            window_size=5  # Ventana de 5 frames para suavizado
+            window_size=7,
+            alpha=0.3,
+            min_confidence=60.0
         )
         
         # Iniciar pipeline
         pipeline.start()
-        logger.info("Pipeline emocional iniciado")
+        logger.info("Pipeline emocional iniciado con estabilización temporal")
         
         # Guardar pipeline en el contexto de la app
         app.config['EMOTION_PIPELINE'] = pipeline
