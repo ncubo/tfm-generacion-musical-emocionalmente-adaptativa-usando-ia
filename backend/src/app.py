@@ -5,25 +5,25 @@ Este módulo implementa la API REST Flask que expone el pipeline de
 reconocimiento emocional y generación musical MIDI baseline.
 
 La API proporciona endpoints para:
-- Detección de emociones desde webcam
+- Detección de emociones desde webcam (lazy initialization)
+- Detección de emociones desde imagen enviada
 - Generación de música MIDI basada en emociones
 - Monitoreo de salud del servicio
+
+IMPORTANTE: La webcam del servidor NO se inicializa al arrancar.
+Solo se activa cuando se necesita (/emotion o /generate-midi).
 """
 
-from flask import Flask
+import os
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from pathlib import Path
 import logging
 
-# Importar componentes del core
-from .core.camera.webcam import WebcamCapture
-from .core.emotion.deepface_detector import DeepFaceEmotionDetector
-from .core.pipeline.emotion_pipeline import EmotionPipeline
-
 # Importar blueprints
 from .routes import health_bp, emotion_bp, music_bp
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"  # Lazy initialization implementada
 
 # Configurar logging
 logging.basicConfig(
@@ -54,7 +54,8 @@ def create_app(config=None):
         >>> app.run(debug=True, port=5000)
     """
     # Crear instancia de Flask
-    app = Flask(__name__)
+    # app = Flask(__name__)
+    app = Flask(__name__, static_folder='../../frontend/dist')
     
     # Configuración por defecto
     app.config['OUTPUT_DIR'] = Path(__file__).parent.parent / 'output'
@@ -72,40 +73,14 @@ def create_app(config=None):
     # Habilitar CORS para permitir requests desde el frontend
     CORS(app)
     
-    # Inicializar componentes del pipeline emocional
-    logger.info("Inicializando componentes del sistema...")
+    # Lazy initialization: NO inicializar webcam ni pipeline al arrancar
+    # El pipeline se creará la primera vez que se llame al endpoint /emotion
+    logger.info("Sistema iniciado (lazy initialization activa)")
+    logger.info("La webcam se activará solo cuando se use /emotion")
     
-    try:
-        # Inicializar webcam
-        camera = WebcamCapture(camera_index=0)
-        logger.info("Webcam inicializada")
-        
-        # Inicializar detector de emociones
-        detector = DeepFaceEmotionDetector()
-        logger.info("Detector de emociones inicializado")
-        
-        # Crear pipeline emocional con estabilización temporal mejorada
-        # - EMA para V/A con alpha=0.3 (balance suavizado/responsividad)
-        # - Ventana de mayoría de 7 frames para emoción discreta
-        # - Umbral de confianza de 60% para cambios de emoción
-        pipeline = EmotionPipeline(
-            camera=camera,
-            detector=detector,
-            window_size=7,
-            alpha=0.3,
-            min_confidence=60.0
-        )
-        
-        # Iniciar pipeline
-        pipeline.start()
-        logger.info("Pipeline emocional iniciado con estabilización temporal")
-        
-        # Guardar pipeline en el contexto de la app
-        app.config['EMOTION_PIPELINE'] = pipeline
-        
-    except Exception as e:
-        logger.error(f"Error al inicializar componentes: {e}")
-        raise
+    # Guardar None como placeholder para lazy initialization
+    app.config['EMOTION_PIPELINE'] = None
+    app.config['PIPELINE_LOCK'] = None  # Para thread-safety
     
     # Registrar blueprints
     app.register_blueprint(health_bp)
@@ -120,8 +95,20 @@ def create_app(config=None):
         """Libera recursos cuando la aplicación se cierra."""
         pipeline = app.config.get('EMOTION_PIPELINE')
         if pipeline:
-            pipeline.stop()
-            logger.info("Pipeline emocional detenido")
+            try:
+                pipeline.stop()
+                logger.info("Pipeline emocional detenido")
+            except Exception as e:
+                logger.error(f"Error al detener pipeline: {e}")
+
+    # Esto es para servir el frontend en render.com y usar solo un servicio
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve(path):
+        if path != "" and os.path.exists(app.static_folder + '/' + path):
+            return send_from_directory(app.static_folder, path)
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
     
     return app
 
@@ -145,11 +132,13 @@ def main():
     
     # Información sobre endpoints disponibles
     print("\nEndpoints disponibles:")
-    print("  GET  /health          - Verificación de estado")
-    print("  POST /emotion         - Detectar emoción actual")
-    print("  POST /generate-midi   - Generar MIDI emocional")
+    print("  GET  /health                - Verificación de estado")
+    print("  POST /emotion               - Detectar emoción actual (webcam servidor)")
+    print("  POST /emotion-from-frame    - Detectar emoción desde imagen enviada")
+    print("  POST /generate-midi         - Generar MIDI emocional")
     print("\n" + "=" * 70)
     print(f"Servidor iniciando en http://{app.config['HOST']}:{app.config['PORT']}")
+    print("NOTA: Webcam en lazy mode - se activará solo al usar /emotion")
     print("=" * 70 + "\n")
     
     # Ejecutar servidor de desarrollo

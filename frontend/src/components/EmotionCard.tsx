@@ -75,7 +75,7 @@ export function EmotionCard() {
           {/* Visualización simple del espacio V-A */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded">
             <p className="text-xs text-gray-600 mb-2">Espacio Valencia-Activación:</p>
-            <div className="relative w-full h-32 bg-gradient-to-br from-blue-100 via-gray-100 to-orange-100 rounded border border-gray-300">
+            <div className="relative w-full h-32 bg-linear-to-br from-blue-100 via-gray-100 to-orange-100 rounded border border-gray-300">
               {/* Punto indicador */}
               <div
                 className="absolute w-4 h-4 bg-purple-600 rounded-full border-2 border-white shadow-lg transform -translate-x-2 -translate-y-2"

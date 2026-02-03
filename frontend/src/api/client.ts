@@ -2,6 +2,7 @@ import { ENV } from '../config/env';
 import type {
   HealthResponse,
   EmotionResponse,
+  EmotionFromFrameResponse,
   GenerateMidiRequest,
   GenerateMidiResponse,
 } from '../types';
@@ -76,6 +77,49 @@ class ApiClient {
     return this.request<EmotionResponse>('/emotion', {
       method: 'POST',
     });
+  }
+
+  /**
+   * POST /emotion-from-frame - Analiza emoción desde una imagen enviada
+   */
+  async analyzeImageEmotion(imageBlob: Blob): Promise<EmotionFromFrameResponse> {
+    const formData = new FormData();
+    formData.append('image', imageBlob, 'snapshot.jpg');
+
+    const url = `${this.baseUrl}/emotion-from-frame`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        // No establecer Content-Type manualmente, fetch lo hará automáticamente con boundary
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('La petición tardó demasiado (timeout)');
+        }
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('No se pudo conectar con el servidor. Verifica que esté ejecutándose.');
+        }
+        throw error;
+      }
+      throw new Error('Error desconocido al realizar la petición');
+    }
   }
 
   /**
