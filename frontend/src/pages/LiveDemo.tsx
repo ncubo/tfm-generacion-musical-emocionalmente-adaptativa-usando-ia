@@ -1,6 +1,7 @@
 import { StatusCard } from '../components/StatusCard';
 import { EmotionCard } from '../components/EmotionCard';
 import { MidiCard } from '../components/MidiCard';
+import { WebcamView } from '../components/WebcamView';
 
 export function LiveDemo() {
   return (
@@ -20,12 +21,13 @@ export function LiveDemo() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Columna izquierda */}
           <div className="space-y-6">
-            <StatusCard />
+            <WebcamView />
             <EmotionCard />
           </div>
 
           {/* Columna derecha */}
           <div className="space-y-6">
+            <StatusCard />
             <MidiCard />
           </div>
         </div>
