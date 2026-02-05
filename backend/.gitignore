@@ -52,10 +52,19 @@ htmlcov/
 output/
 *.mid
 
+# Data outputs (MIDIs generados)
+data/outputs/
+
 # Metrics and benchmarks (generated files)
 metrics/
 *.csv
 *.json
+
+# Checkpoints de modelos (transformer, etc.)
+data/checkpoints/
+*.pt
+*.pth
+*.ckpt
 
 # mypy
 .mypy_cache/

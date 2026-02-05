@@ -16,10 +16,10 @@ Sistema de generación musical basado en detección de emociones mediante visió
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # En Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python src/app.py
+python -m src.app
 ```
 
 El backend estará disponible en `http://localhost:5000`
