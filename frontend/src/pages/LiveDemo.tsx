@@ -1,6 +1,11 @@
+import { useState } from 'react';
 import { WebcamView } from '../components/WebcamView';
+import { MidiCard } from '../components/MidiCard';
+import type { EmotionFromFrameResponse } from '../types';
 
 export function LiveDemo() {
+  const [capturedEmotion, setCapturedEmotion] = useState<EmotionFromFrameResponse | null>(null);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-100 to-gray-200">
       {/* Header */}
@@ -14,8 +19,12 @@ export function LiveDemo() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-4xl mx-auto">
-          <WebcamView />
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Webcam para detección emocional */}
+          <WebcamView onEmotionDetected={setCapturedEmotion} />
+          
+          {/* Generación MIDI con selector de motor */}
+          <MidiCard capturedEmotion={capturedEmotion} />
         </div>
       </main>
 

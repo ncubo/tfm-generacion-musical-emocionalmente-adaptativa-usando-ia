@@ -14,9 +14,10 @@ const FPS_OPTIONS = [
 
 interface WebcamViewProps {
   onSnapshot?: (blob: Blob) => void;
+  onEmotionDetected?: (emotion: EmotionFromFrameResponse) => void;
 }
 
-export function WebcamView({ onSnapshot }: WebcamViewProps) {
+export function WebcamView({ onSnapshot, onEmotionDetected }: WebcamViewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -192,9 +193,9 @@ export function WebcamView({ onSnapshot }: WebcamViewProps) {
       const result = await apiClient.analyzeImageEmotion(snapshotBlob);
       setEmotionResult(result);
 
-      // Llamar callback si existe
-      if (onSnapshot) {
-        onSnapshot(snapshotBlob);
+      // Llamar callback para notificar la emoción detectada
+      if (onEmotionDetected) {
+        onEmotionDetected(result);
       }
     } catch (err) {
       console.error('Error al analizar imagen:', err);

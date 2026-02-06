@@ -20,19 +20,36 @@ export interface EmotionFromFrameResponse {
   face_detected: boolean;
 }
 
+// Tipos para engines de generación MIDI
+export type MusicEngine = 'baseline' | 'transformer_pretrained' | 'transformer_finetuned';
+
+export interface EngineInfo {
+  name: MusicEngine;
+  description: string;
+  available: boolean;
+}
+
+export interface EnginesListResponse {
+  engines: EngineInfo[];
+}
+
 export interface GenerateMidiRequest {
+  engine?: MusicEngine;
   emotion?: string;
   valence?: number;
   arousal?: number;
+  seed?: number;
   params?: Record<string, unknown>;
 }
 
 export interface GenerateMidiResponse {
-  emotion: string;
+  engine: MusicEngine;
+  emotion?: string;
   valence: number;
   arousal: number;
-  params: Record<string, unknown>;
+  generation_params: Record<string, unknown>;
   midi_path: string;
+  midi_data: string; // MIDI file content in base64
 }
 
 // Estados de UI comunes

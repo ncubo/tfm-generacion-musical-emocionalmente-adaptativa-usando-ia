@@ -5,6 +5,7 @@ import type {
   EmotionFromFrameResponse,
   GenerateMidiRequest,
   GenerateMidiResponse,
+  EnginesListResponse,
 } from '../types';
 
 // Configuración base para el cliente API
@@ -130,6 +131,13 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  /**
+   * GET /engines - Lista los engines de generación disponibles
+   */
+  async getEngines(): Promise<EnginesListResponse> {
+    return this.request<EnginesListResponse>('/engines');
   }
 }
 

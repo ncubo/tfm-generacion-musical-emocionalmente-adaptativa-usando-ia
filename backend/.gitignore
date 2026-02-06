@@ -66,5 +66,9 @@ data/checkpoints/
 *.pth
 *.ckpt
 
+# Transformer pretrained weights
+models/transformer_pretrained/*
+!models/transformer_pretrained/README.md
+
 # mypy
 .mypy_cache/
