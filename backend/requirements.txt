@@ -14,6 +14,7 @@ mido>=1.3.0
 # Dependencias para generación musical con Transformer (PyTorch)
 torch>=2.0.0  # PyTorch para el modelo Transformer
 miditok>=3.0.0  # Tokenización MIDI (REMI encoding) - requiere v3.0+ para symusic backend
+transformers>=4.40,<5  # Hugging Face Transformers para modelo Maestro-REMI (https://huggingface.co/NathanFradet/Maestro-REMI-bpe20k)
 
 # Dependencias para API REST
 flask>=3.0.0

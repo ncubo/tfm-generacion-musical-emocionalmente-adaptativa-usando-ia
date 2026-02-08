@@ -83,14 +83,25 @@ El sistema convierte coordenadas Valence-Arousal en estos parámetros:
 
 ```
 backend/src/core/music/
-├── mapping.py          # Mapeo VA → parámetros musicales
-├── baseline_rules.py   # Generador MIDI por reglas
+├── engines/
+│   ├── __init__.py
+│   ├── baseline.py         # Generador MIDI baseline
+│   └── hf_maestro_remi.py  # Generador con HF Transformers
+├── mapping.py              # Mapeo VA → parámetros musicales
 └── __init__.py
 
 backend/scripts/
 ├── generate_baseline_from_webcam.py  # Demo con webcam
 └── test_midi_generation.py           # Test sin webcam
 ```
+
+### Modelos Usados
+
+- **Baseline**: Generador basado en reglas musicales deterministas
+- **HF Maestro-REMI**: Modelo transformer preentrenado
+  - Checkpoint: [`NathanFradet/Maestro-REMI-bpe20k`](https://huggingface.co/NathanFradet/Maestro-REMI-bpe20k)
+  - Entrenado en el dataset MAESTRO con tokenización REMI + BPE
+  - 20k vocabulario, arquitectura GPT-2
 
 ## Ejemplos de Salida
 
@@ -123,17 +134,6 @@ Este es un generador **baseline** con las siguientes limitaciones intencionales:
 5. **Tónica fija**: Siempre en Do (C)
 
 Estas limitaciones son por diseño para establecer un baseline simple y reproducible que pueda servir como referencia para comparar con generadores más sofisticados (ej. modelos neuronales).
-
-## Próximas Mejoras
-
-Mejoras posibles para el futuro:
-
-- [ ] Soporte para más modos musicales (dórico, frigio, mixolidio)
-- [ ] Generación polifónica (acordes, bajo)
-- [ ] Estructura formal (A-B-A, verso-coro)
-- [ ] Modulación tonal
-- [ ] Patrones rítmicos más complejos
-- [ ] Expresividad dinámica más rica
 
 ## Instalación de Dependencias
 
