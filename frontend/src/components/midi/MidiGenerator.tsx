@@ -57,6 +57,9 @@ export function MidiGenerator({ emotionData }: MidiGeneratorProps) {
         engine: selectedEngine,
         seed,
         length_bars: lengthBars,
+        valence: emotionData.valence,
+        arousal: emotionData.arousal,
+        emotion: emotionData.emotion,
       });
 
       // Crear URL para el blob MIDI

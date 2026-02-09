@@ -59,54 +59,38 @@ def cleanup_old_midi_files(output_dir: Path, max_age_minutes: int = 20):
 @music_bp.route('/generate-midi', methods=['POST'])
 def generate_midi():
     """
-    Genera un archivo MIDI basado en el estado emocional actual.
-    
-    NOTA: Este endpoint usa lazy initialization. La webcam solo se activa
-    la primera vez que se necesita detectar emoción desde la webcam del servidor.
+    Genera un archivo MIDI basado en el estado emocional proporcionado.
     
     Query Parameters (opcionales):
         engine (str): Motor de generación - "baseline" (default) o "transformer_pretrained"
         seed (int): Semilla aleatoria para reproducibilidad
         length_bars (int): Número de compases a generar (default: MIDI_LENGTH_BARS config)
     
+    JSON Body (opcional):
+        valence (float): Valor de valencia [-1, 1]
+        arousal (float): Valor de activación [-1, 1]
+        emotion (str): Nombre de la emoción
+    
+    Si no se proporciona valence/arousal en el body, se captura desde la webcam del servidor.
+    
     Workflow:
-    1. Captura el estado emocional actual (webcam servidor)
+    1. Obtiene estado emocional (desde body o webcam servidor)
     2. Mapea emoción a coordenadas Valence-Arousal
     3. Convierte coordenadas VA a parámetros musicales
     4. Genera archivo MIDI usando el engine seleccionado:
        - baseline: Reglas heurísticas deterministas
        - transformer_pretrained: Modelo HF Maestro-REMI con condicionamiento indirecto
-    5. Retorna metadata y path del archivo generado
+    5. Retorna archivo MIDI con metadata en headers
     
     Returns:
-        JSON con información de la generación y path al archivo MIDI
+        Archivo MIDI binario con metadata en headers
     
     Example:
-        POST /generate-midi
         POST /generate-midi?engine=transformer_pretrained&seed=42&length_bars=16
-        
-        Response:
-        {
-            "emotion": "happy",
-            "valence": 0.68,
-            "arousal": 0.58,
-            "params": {
-                "tempo_bpm": 132,
-                "mode": "major",
-                "density": 0.74,
-                "pitch_low": 64,
-                "pitch_high": 76,
-                "rhythm_complexity": 0.74,
-                "velocity_mean": 92,
-                "velocity_spread": 22
-            },
-            "midi_path": "/path/to/output/emotion_baseline_20260130_123045.mid",
-            "engine": "baseline",
-            "length_bars": 8,
-            "seed": null
-        }
+        Body: {"valence": 0.2, "arousal": 0.8, "emotion": "surprise"}
     
     Error cases:
+        - 400: Parámetros inválidos
         - 500: Error al generar MIDI, webcam no disponible, o engine no disponible
     """
     try:
@@ -155,23 +139,42 @@ def generate_midi():
                 'message': f'engine debe ser uno de: {valid_engines}'
             }), 400
         
-        # Lazy initialization: obtener o crear pipeline
-        try:
-            pipeline = _get_or_create_pipeline()
-        except RuntimeError as e:
-            # Error al inicializar webcam
-            return jsonify({
-                'error': 'No se pudo acceder a la webcam del servidor',
-                'message': str(e)
-            }), 500
+        # Obtener datos emocionales del body JSON o desde webcam
+        body_data = request.get_json(silent=True) or {}
         
-        # Medir tiempo total del pipeline completo
-        with metrics.measure('total_pipeline', metadata={
-            'endpoint': '/generate-midi',
-            'engine': engine,
-            'length_bars': length_bars,
-            'seed': seed
-        }):
+        if 'valence' in body_data and 'arousal' in body_data:
+            # Usar emoción proporcionada en el body
+            try:
+                valence = float(body_data['valence'])
+                arousal = float(body_data['arousal'])
+                emotion = body_data.get('emotion', 'unknown')
+                
+                # Validar rango
+                if not (-1 <= valence <= 1) or not (-1 <= arousal <= 1):
+                    return jsonify({
+                        'error': 'Valores fuera de rango',
+                        'message': 'valence y arousal deben estar entre -1 y 1'
+                    }), 400
+                
+                current_app.logger.info(
+                    f"Usando emoción del body: {emotion} (V: {valence:.2f}, A: {arousal:.2f})"
+                )
+            except (ValueError, TypeError) as e:
+                return jsonify({
+                    'error': 'Formato inválido',
+                    'message': f'valence y arousal deben ser números: {str(e)}'
+                }), 400
+        else:
+            # Capturar desde webcam del servidor (comportamiento legacy)
+            try:
+                pipeline = _get_or_create_pipeline()
+            except RuntimeError as e:
+                # Error al inicializar webcam
+                return jsonify({
+                    'error': 'No se pudo acceder a la webcam del servidor',
+                    'message': str(e)
+                }), 500
+            
             # Medir tiempo de detección emocional
             with metrics.measure('emotion_detection_for_midi'):
                 # Capturar estado emocional actual
@@ -180,6 +183,14 @@ def generate_midi():
             emotion = emotion_result['emotion']
             valence = emotion_result['valence']
             arousal = emotion_result['arousal']
+        
+        # Medir tiempo total del pipeline completo
+        with metrics.measure('total_pipeline', metadata={
+            'endpoint': '/generate-midi',
+            'engine': engine,
+            'length_bars': length_bars,
+            'seed': seed
+        }):
             
             # Medir tiempo de mapeo VA a parámetros musicales
             with metrics.measure('va_to_music_mapping'):

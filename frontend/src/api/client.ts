@@ -127,6 +127,9 @@ class ApiClient {
     engine?: 'baseline' | 'transformer_pretrained';
     seed?: number;
     length_bars?: number;
+    valence?: number;
+    arousal?: number;
+    emotion?: string;
   } = {}): Promise<{
     midiBlob: Blob;
     engine: string;
@@ -143,8 +146,19 @@ class ApiClient {
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout para HF model
 
     try {
+      // Preparar body con datos de emoción si están presentes
+      const body = (params.valence !== undefined && params.arousal !== undefined) 
+        ? JSON.stringify({
+            valence: params.valence,
+            arousal: params.arousal,
+            emotion: params.emotion || 'unknown'
+          })
+        : undefined;
+
       const response = await fetch(url, {
         method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body,
         signal: controller.signal,
       });
 
