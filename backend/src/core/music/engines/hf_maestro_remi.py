@@ -164,9 +164,9 @@ def _derive_sampling_config(params: Dict[str, Any]) -> Dict[str, Any]:
     # Top-p: 0.85 (baja energía) -> 0.95 (alta energía)
     top_p = 0.85 + energy * 0.1
     
-    # Max tokens: aproximadamente 128 tokens por compás (valor empírico)
+    # Max tokens: aproximadamente 40 tokens por compás (valor ajustado para REMI)
     # Más energía -> más notas -> más tokens por compás
-    tokens_per_bar = int(128 * (0.8 + energy * 0.4))
+    tokens_per_bar = int(40 * (0.8 + energy * 0.4))
     
     return {
         'temperature': temperature,
@@ -322,15 +322,12 @@ def generate_midi_hf_maestro_remi(
             logger.info(f"Generando {max_new_tokens} nuevos tokens para {remaining_bars} compases...")
             
             # 5. Generar continuación con el modelo (API oficial de HF)
-            # Calcular max_length total (no max_new_tokens)
-            max_length = len(input_token_ids) + max_new_tokens
-            
             # Convertir lista de IDs a tensor (batch_size=1)
             input_tensor = torch.tensor([input_token_ids], dtype=torch.long, device=device)
             
             generated_token_ids = model.generate(
                 input_tensor,
-                max_length=max_length,
+                max_new_tokens=max_new_tokens,
                 temperature=sampling_config['temperature'],
                 top_p=sampling_config['top_p'],
                 do_sample=sampling_config['do_sample'],

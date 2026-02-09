@@ -8,6 +8,8 @@ emocional del usuario.
 from flask import Blueprint, jsonify, request, current_app
 from pathlib import Path
 from datetime import datetime
+import time
+import os
 from ..core.music.mapping import va_to_music_params
 from ..core.music.engines.baseline import generate_midi_baseline
 from ..core.music.engines.hf_maestro_remi import generate_midi_hf_maestro_remi
@@ -17,6 +19,41 @@ from ..core.utils.metrics import get_metrics
 from .emotion import _get_or_create_pipeline
 
 music_bp = Blueprint('music', __name__)
+
+
+def cleanup_old_midi_files(output_dir: Path, max_age_minutes: int = 20):
+    """
+    Elimina archivos MIDI generados que tengan más de max_age_minutes minutos.
+    
+    Solo limpia archivos que coincidan con el patrón de generación automática:
+    - emotion_*.mid
+    
+    Args:
+        output_dir: Directorio donde están los archivos generados
+        max_age_minutes: Antigüedad máxima en minutos (default: 20)
+    """
+    try:
+        current_time = time.time()
+        max_age_seconds = max_age_minutes * 60
+        deleted_count = 0
+        
+        # Buscar archivos MIDI generados automáticamente
+        for midi_file in output_dir.glob('emotion_*.mid'):
+            file_age = current_time - os.path.getmtime(midi_file)
+            
+            if file_age > max_age_seconds:
+                try:
+                    midi_file.unlink()
+                    deleted_count += 1
+                    current_app.logger.debug(f"Eliminado archivo antiguo: {midi_file.name} (edad: {file_age/60:.1f} min)")
+                except Exception as e:
+                    current_app.logger.warning(f"Error al eliminar {midi_file.name}: {e}")
+        
+        if deleted_count > 0:
+            current_app.logger.info(f"Limpieza automática: {deleted_count} archivo(s) MIDI eliminado(s)")
+    
+    except Exception as e:
+        current_app.logger.error(f"Error en limpieza automática de MIDI: {e}")
 
 
 @music_bp.route('/generate-midi', methods=['POST'])
@@ -155,6 +192,9 @@ def generate_midi():
             midi_filename = f"emotion_{engine}_{timestamp}.mid"
             midi_path = output_dir / midi_filename
             
+            # Limpieza automática de archivos antiguos (más de 20 minutos)
+            cleanup_old_midi_files(output_dir, max_age_minutes=20)
+            
             # Medir tiempo de generación MIDI según engine
             with metrics.measure('midi_generation', metadata={
                 'emotion': emotion,
@@ -202,23 +242,29 @@ def generate_midi():
                     # No debería llegar aquí por validación previa
                     raise ValueError(f"Engine no implementado: {engine}")
         
-        # Preparar respuesta
-        response = {
-            'emotion': emotion,
-            'valence': round(valence, 2),
-            'arousal': round(arousal, 2),
-            'params': music_params,
-            'midi_path': generated_path,
-            'engine': engine,
-            'length_bars': length_bars,
-            'seed': seed
-        }
+        # Leer archivo MIDI generado
+        with open(generated_path, 'rb') as f:
+            midi_data = f.read()
         
-        # Opcional: incluir tiempo de procesamiento en la respuesta
-        if current_app.config.get('INCLUDE_METRICS', False):
-            response['processing_time_ms'] = round(timing['duration'] * 1000, 2)
+        # Crear respuesta con el archivo MIDI
+        from flask import make_response
+        response = make_response(midi_data)
+        response.headers['Content-Type'] = 'audio/midi'
+        response.headers['Content-Disposition'] = f'attachment; filename="{Path(generated_path).name}"'
         
-        return jsonify(response), 200
+        # Agregar metadata como headers personalizados
+        response.headers['X-Engine'] = engine
+        response.headers['X-Seed'] = str(seed) if seed is not None else '0'
+        response.headers['X-Length-Bars'] = str(length_bars)
+        response.headers['X-Emotion'] = emotion
+        response.headers['X-Valence'] = str(round(valence, 2))
+        response.headers['X-Arousal'] = str(round(arousal, 2))
+        
+        # CORS headers para permitir acceso desde frontend
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Expose-Headers'] = 'X-Engine,X-Seed,X-Length-Bars,X-Emotion,X-Valence,X-Arousal'
+        
+        return response, 200
         
     except Exception as e:
         # Log del error para debugging
