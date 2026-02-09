@@ -1,20 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../../api/client';
 import type { EmotionFromFrameResponse } from '../../types';
-import { useRealtimeEmotion } from '../../hooks/useRealtimeEmotion';
 import { MidiGenerator } from '../midi/MidiGenerator';
 import { CameraView } from './CameraView';
-import { RealtimeCapture } from '../emotion/RealtimeCapture';
 import { ManualCapture } from '../emotion/ManualCapture';
 
 type WebcamStatus = 'idle' | 'requesting' | 'active' | 'error';
-
-// Opciones de frecuencia para tiempo real
-const FPS_OPTIONS = [
-  { label: '0.5 FPS (2s)', value: 2000 },
-  { label: '1 FPS (1s)', value: 1000 },
-  { label: '2 FPS (0.5s)', value: 500 },
-] as const;
 
 interface WebcamViewProps {
   onSnapshot?: (blob: Blob) => void;
@@ -34,18 +25,6 @@ export function WebcamView({ onSnapshot }: WebcamViewProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [emotionResult, setEmotionResult] = useState<EmotionFromFrameResponse | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-
-  // Estados para modo tiempo real
-  const [realtimeEnabled, setRealtimeEnabled] = useState(false);
-  const [realtimeInterval, setRealtimeInterval] = useState(1000); // 1 FPS por defecto
-
-  // Hook de tiempo real
-  const realtimeState = useRealtimeEmotion({
-    videoRef,
-    canvasRef,
-    intervalMs: realtimeInterval,
-    enabled: realtimeEnabled,
-  });
 
   useEffect(() => {
     // Solicitar acceso a la cámara al montar el componente
