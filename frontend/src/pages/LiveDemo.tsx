@@ -1,4 +1,4 @@
-import { WebcamView } from '../components/WebcamView';
+import { WebcamView } from '../components/camera/WebcamView';
 
 export function LiveDemo() {
   return (
@@ -13,8 +13,8 @@ export function LiveDemo() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-4xl mx-auto">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-[1600px] mx-auto">
           <WebcamView />
         </div>
       </main>

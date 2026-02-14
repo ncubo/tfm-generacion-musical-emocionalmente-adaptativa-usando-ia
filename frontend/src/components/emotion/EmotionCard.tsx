@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { apiClient } from '../api/client';
-import type { EmotionResponse } from '../types';
-import { normalizeEmotionToPercentage } from '../utils/constants';
+import { apiClient } from '../../api/client';
+import type { EmotionResponse } from '../../types';
+import { normalizeEmotionToPercentage } from '../../utils/constants';
 
 export function EmotionCard() {
   const [emotion, setEmotion] = useState<EmotionResponse | null>(null);
