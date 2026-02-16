@@ -66,6 +66,10 @@ data/checkpoints/
 *.pth
 *.ckpt
 
+# Modelos fine-tuned (demasiado pesados para Git)
+models/maestro_finetuned/
+!models/.gitkeep
+
 # mypy
 .mypy_cache/
 
