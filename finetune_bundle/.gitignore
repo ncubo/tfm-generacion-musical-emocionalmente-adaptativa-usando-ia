@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dataset pesado (debe generarse localmente)
+data/finetune_dataset/
+!data/.gitkeep
+
+# Modelos entrenados
+models/
+!models/.gitkeep
+
+# Tar bundles
+*.tar.gz
