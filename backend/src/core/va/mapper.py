@@ -1,5 +1,5 @@
 """
-Mapper de emociones discretas a coordenadas Valence-Arousal.
+Mapper de emociones discretas a coordenadas Valencia-Activación.
 
 Este módulo proporciona funciones y clases para convertir emociones discretas
 detectadas por el sistema a coordenadas continuas en el espacio VA, con
@@ -17,7 +17,7 @@ VACoordinates = Tuple[float, float]
 
 def emotion_to_va(emotion: str) -> VACoordinates:
     """
-    Convierte una emoción discreta a coordenadas Valence-Arousal.
+    Convierte una emoción discreta a coordenadas Valencia-Activación.
     
     Esta función toma una etiqueta de emoción normalizada y retorna sus
     coordenadas (V, A) correspondientes según la tabla de mapeo definida.

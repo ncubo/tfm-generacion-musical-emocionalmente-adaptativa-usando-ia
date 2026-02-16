@@ -197,7 +197,7 @@ export function MidiGenerator({ emotionData }: MidiGeneratorProps) {
       {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800 text-sm">❌ {error}</p>
+          <p className="text-red-800 text-sm">{error}</p>
         </div>
       )}
 

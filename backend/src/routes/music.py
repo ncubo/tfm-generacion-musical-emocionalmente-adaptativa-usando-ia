@@ -75,7 +75,7 @@ def generate_midi():
     
     Workflow:
     1. Obtiene estado emocional (desde body o webcam servidor)
-    2. Mapea emoción a coordenadas Valence-Arousal
+    2. Mapea emoción a coordenadas Valencia-Activación
     3. Convierte coordenadas VA a parámetros musicales
     4. Genera archivo MIDI usando el engine seleccionado:
        - baseline: Reglas heurísticas deterministas

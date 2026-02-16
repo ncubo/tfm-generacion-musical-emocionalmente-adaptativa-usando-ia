@@ -225,7 +225,7 @@ def _generate_primer(
     logger.debug(f"Primer generado: {primer_path} con {note_count} notas")
     
     if note_count == 0:
-        logger.warning(f"⚠️  ADVERTENCIA: Primer MIDI vacío (0 notas). Params: {params}")
+        logger.warning(f"ADVERTENCIA: Primer MIDI vacío (0 notas). Params: {params}")
     
     return primer_path
 

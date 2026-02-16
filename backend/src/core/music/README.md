@@ -54,7 +54,7 @@ print(f"MIDI generado: {output_path}")
 
 ## Parámetros Musicales
 
-El sistema convierte coordenadas Valence-Arousal en estos parámetros:
+El sistema convierte coordenadas Valencia-Activación en estos parámetros:
 
 | Parámetro | Descripción | Rango |
 |-----------|-------------|-------|
