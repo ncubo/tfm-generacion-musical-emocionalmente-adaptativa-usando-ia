@@ -1,0 +1,64 @@
+% Tabla de benchmark agregado (mean ± std)
+% Generada automáticamente por run_benchmark_models.py
+
+\begin{table}[htbp]
+\centering
+\caption{Comparación estadística de motores de generación musical}
+\label{tab:benchmark_aggregated}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccccccc}
+\hline
+\textbf{Motor} & \textbf{V/A} & \textbf{N} & \textbf{Densidad} & \textbf{Rango} & \textbf{Velocidad} & \textbf{Duración} & \textbf{Notas} & \textbf{Únicas} \\
+& & & \textbf{(n/s)} & \textbf{(st)} & \textbf{(vel)} & \textbf{(s)} & & \\
+\hline
+Baseline & (-0.8, -0.8) & 5 & $0.23 \pm 0.12$ & $5 \pm 3$ & $48 \pm 1$ & $1.06 \pm 0.19$ & $6 \pm 3$ & $4 \pm 2$ \\
+Transformer & (-0.8, -0.8) & 5 & $3.07 \pm 0.69$ & $15 \pm 4$ & $47 \pm 4$ & $0.37 \pm 0.22$ & $254 \pm 46$ & $13 \pm 7$ \\
+\hline
+Baseline & (-0.8, -0.2) & 5 & $1.27 \pm 0.20$ & $11 \pm 3$ & $64 \pm 1$ & $0.40 \pm 0.01$ & $22 \pm 3$ & $7 \pm 2$ \\
+Transformer & (-0.8, -0.2) & 5 & $2.73 \pm 0.79$ & $20 \pm 0$ & $61 \pm 3$ & $0.50 \pm 0.09$ & $283 \pm 17$ & $17 \pm 2$ \\
+\hline
+Baseline & (-0.8, +0.2) & 5 & $2.08 \pm 0.24$ & $10 \pm 3$ & $77 \pm 2$ & $0.33 \pm 0.02$ & $30 \pm 4$ & $7 \pm 2$ \\
+Transformer & (-0.8, +0.2) & 5 & $3.75 \pm 1.10$ & $20 \pm 1$ & $73 \pm 5$ & $0.27 \pm 0.07$ & $296 \pm 7$ & $18 \pm 3$ \\
+\hline
+Baseline & (-0.8, +0.8) & 5 & $6.15 \pm 0.25$ & $18 \pm 3$ & $96 \pm 2$ & $0.15 \pm 0.00$ & $70 \pm 3$ & $12 \pm 2$ \\
+Transformer & (-0.8, +0.8) & 5 & $5.86 \pm 3.08$ & $23 \pm 0$ & $94 \pm 3$ & $0.20 \pm 0.12$ & $301 \pm 17$ & $21 \pm 2$ \\
+\hline
+Baseline & (-0.2, -0.8) & 5 & $0.23 \pm 0.12$ & $5 \pm 3$ & $54 \pm 1$ & $1.06 \pm 0.19$ & $6 \pm 3$ & $4 \pm 2$ \\
+Transformer & (-0.2, -0.8) & 5 & $5.70 \pm 2.18$ & $12 \pm 2$ & $58 \pm 6$ & $0.19 \pm 0.08$ & $279 \pm 35$ & $11 \pm 2$ \\
+\hline
+Baseline & (-0.2, -0.2) & 5 & $1.27 \pm 0.20$ & $11 \pm 3$ & $70 \pm 1$ & $0.40 \pm 0.01$ & $22 \pm 3$ & $7 \pm 2$ \\
+Transformer & (-0.2, -0.2) & 5 & $5.11 \pm 2.34$ & $15 \pm 4$ & $68 \pm 6$ & $0.21 \pm 0.09$ & $322 \pm 22$ & $15 \pm 4$ \\
+\hline
+Baseline & (-0.2, +0.2) & 5 & $2.08 \pm 0.24$ & $10 \pm 3$ & $83 \pm 2$ & $0.33 \pm 0.02$ & $30 \pm 4$ & $7 \pm 2$ \\
+Transformer & (-0.2, +0.2) & 5 & $4.96 \pm 1.23$ & $19 \pm 0$ & $82 \pm 4$ & $0.23 \pm 0.07$ & $303 \pm 47$ & $17 \pm 2$ \\
+\hline
+Baseline & (-0.2, +0.8) & 5 & $6.15 \pm 0.25$ & $18 \pm 3$ & $102 \pm 2$ & $0.15 \pm 0.00$ & $70 \pm 3$ & $12 \pm 2$ \\
+Transformer & (-0.2, +0.8) & 5 & $4.80 \pm 2.37$ & $22 \pm 3$ & $96 \pm 4$ & $0.24 \pm 0.10$ & $280 \pm 18$ & $21 \pm 3$ \\
+\hline
+Baseline & (+0.2, -0.8) & 5 & $0.23 \pm 0.12$ & $5 \pm 3$ & $58 \pm 1$ & $1.06 \pm 0.19$ & $6 \pm 3$ & $4 \pm 2$ \\
+Transformer & (+0.2, -0.8) & 5 & $3.84 \pm 2.10$ & $12 \pm 3$ & $56 \pm 7$ & $0.33 \pm 0.22$ & $292 \pm 41$ & $11 \pm 3$ \\
+\hline
+Baseline & (+0.2, -0.2) & 5 & $1.27 \pm 0.20$ & $11 \pm 3$ & $74 \pm 1$ & $0.40 \pm 0.01$ & $22 \pm 3$ & $7 \pm 2$ \\
+Transformer & (+0.2, -0.2) & 5 & $5.01 \pm 1.83$ & $17 \pm 0$ & $71 \pm 4$ & $0.20 \pm 0.11$ & $332 \pm 36$ & $16 \pm 1$ \\
+\hline
+Baseline & (+0.2, +0.2) & 5 & $2.08 \pm 0.24$ & $10 \pm 3$ & $87 \pm 2$ & $0.33 \pm 0.02$ & $30 \pm 4$ & $7 \pm 2$ \\
+Transformer & (+0.2, +0.2) & 5 & $5.24 \pm 2.06$ & $18 \pm 3$ & $86 \pm 4$ & $0.16 \pm 0.05$ & $293 \pm 22$ & $14 \pm 2$ \\
+\hline
+Baseline & (+0.2, +0.8) & 5 & $6.15 \pm 0.25$ & $18 \pm 2$ & $106 \pm 2$ & $0.15 \pm 0.00$ & $70 \pm 3$ & $12 \pm 2$ \\
+Transformer & (+0.2, +0.8) & 5 & $6.70 \pm 1.78$ & $22 \pm 3$ & $104 \pm 1$ & $0.10 \pm 0.02$ & $302 \pm 37$ & $18 \pm 4$ \\
+\hline
+Baseline & (+0.8, -0.8) & 5 & $0.23 \pm 0.12$ & $5 \pm 3$ & $64 \pm 1$ & $1.06 \pm 0.19$ & $6 \pm 3$ & $4 \pm 2$ \\
+Transformer & (+0.8, -0.8) & 5 & $4.37 \pm 0.95$ & $17 \pm 0$ & $61 \pm 5$ & $0.27 \pm 0.16$ & $312 \pm 27$ & $15 \pm 1$ \\
+\hline
+Baseline & (+0.8, -0.2) & 5 & $1.27 \pm 0.20$ & $11 \pm 3$ & $80 \pm 1$ & $0.40 \pm 0.01$ & $22 \pm 3$ & $7 \pm 2$ \\
+Transformer & (+0.8, -0.2) & 5 & $4.53 \pm 2.37$ & $17 \pm 3$ & $81 \pm 4$ & $0.24 \pm 0.21$ & $297 \pm 43$ & $15 \pm 3$ \\
+\hline
+Baseline & (+0.8, +0.2) & 5 & $2.08 \pm 0.24$ & $10 \pm 3$ & $93 \pm 2$ & $0.33 \pm 0.02$ & $30 \pm 4$ & $7 \pm 2$ \\
+Transformer & (+0.8, +0.2) & 5 & $3.20 \pm 1.33$ & $17 \pm 4$ & $89 \pm 4$ & $0.38 \pm 0.26$ & $261 \pm 32$ & $15 \pm 4$ \\
+\hline
+Baseline & (+0.8, +0.8) & 5 & $6.15 \pm 0.25$ & $18 \pm 3$ & $111 \pm 2$ & $0.15 \pm 0.00$ & $70 \pm 3$ & $12 \pm 2$ \\
+Transformer & (+0.8, +0.8) & 5 & $5.37 \pm 1.51$ & $18 \pm 3$ & $106 \pm 5$ & $0.12 \pm 0.03$ & $304 \pm 48$ & $15 \pm 3$ \\
+\hline
+\end{tabular}
+}
+\end{table}
