@@ -55,7 +55,7 @@ output/
 # Data outputs (MIDIs generados)
 data/outputs/
 
-# Metrics and benchmarks (generated files)
+# Métricas y benchmarks (archivos generados)
 metrics/
 *.csv
 *.json
@@ -68,3 +68,6 @@ data/checkpoints/
 
 # mypy
 .mypy_cache/
+
+# Finetuning datasets (archivo grande, no se sube al repositorio)
+data/finetune_dataset/

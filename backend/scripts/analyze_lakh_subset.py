@@ -204,32 +204,32 @@ def analyze_subset(metadata: List[Dict]):
     # Check 1: Variedad de duración
     duration_cv = duration_stats['std'] / duration_stats['mean']
     if duration_cv > 0.5:
-        quality_checks.append(("✓", "Buena variedad de duraciones"))
+        quality_checks.append(("OK", "Buena variedad de duraciones"))
     else:
         quality_checks.append(("⚠", "Poca variedad de duraciones"))
     
     # Check 2: Rango tonal
     if pitch_range_stats['mean'] > 40:
-        quality_checks.append(("✓", "Buen rango tonal promedio"))
+        quality_checks.append(("OK", "Buen rango tonal promedio"))
     else:
         quality_checks.append(("⚠", "Rango tonal limitado"))
     
     # Check 3: Densidad de notas
     avg_density = notes_stats['mean'] / duration_stats['mean']
     if 1.0 < avg_density < 10.0:
-        quality_checks.append(("✓", f"Densidad razonable ({avg_density:.2f} notas/s)"))
+        quality_checks.append(("OK", f"Densidad razonable ({avg_density:.2f} notas/s)"))
     else:
         quality_checks.append(("⚠", f"Densidad inusual ({avg_density:.2f} notas/s)"))
     
     # Check 4: Tamaño del corpus
     if n_files >= 1000:
-        quality_checks.append(("✓", f"Corpus suficientemente grande ({n_files} archivos)"))
+        quality_checks.append(("OK", f"Corpus suficientemente grande ({n_files} archivos)"))
     else:
         quality_checks.append(("⚠", f"Corpus pequeño ({n_files} archivos, recomendado: >1000)"))
     
     # Check 5: Duración total
     if total_duration_hours > 5:
-        quality_checks.append(("✓", f"Duración total adecuada ({total_duration_hours:.1f}h)"))
+        quality_checks.append(("OK", f"Duración total adecuada ({total_duration_hours:.1f}h)"))
     else:
         quality_checks.append(("⚠", f"Duración total limitada ({total_duration_hours:.1f}h)"))
     
@@ -251,8 +251,8 @@ def analyze_subset(metadata: List[Dict]):
     if pitch_range_stats['mean'] < 36:
         logger.info("⚠ Rango tonal bajo. Considera filtrar por pitch_range > 36")
     
-    logger.info("✓ Dataset listo para etiquetado heurístico V/A")
-    logger.info("✓ Dataset listo para tokenización REMI")
+    logger.info("Dataset listo para etiquetado heurístico V/A")
+    logger.info("Dataset listo para tokenización REMI")
     logger.info("="*70 + "\n")
 
 

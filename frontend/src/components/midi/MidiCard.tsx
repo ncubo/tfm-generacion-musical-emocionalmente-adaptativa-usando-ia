@@ -57,7 +57,7 @@ export function MidiCard() {
           <div className="p-4 bg-green-50 border border-green-200 rounded">
             <p className="text-sm text-gray-600">Archivo generado:</p>
             <p className="text-lg font-bold text-green-800">
-              {midiData.engine === 'baseline' ? '🎵 Baseline Rules' : '🤖 Transformer'}
+              {midiData.engine === 'baseline' ? 'Baseline Rules' : 'Transformer'}
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
               <p className="text-gray-600">

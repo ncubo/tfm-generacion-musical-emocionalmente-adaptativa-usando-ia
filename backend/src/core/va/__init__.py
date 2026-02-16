@@ -1,8 +1,8 @@
 """
-Módulo de mapeo Valence-Arousal (VA).
+Módulo de mapeo Valencia-Activación (VA).
 
 Este módulo implementa la conversión de emociones discretas a coordenadas
-continuas en el espacio bidimensional Valence-Arousal basado en el modelo
+continuas en el espacio bidimensional Valencia-Activación basado en el modelo
 Circumplex de Russell (1980).
 
 Componentes:

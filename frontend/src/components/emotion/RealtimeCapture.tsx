@@ -89,7 +89,7 @@ export function RealtimeCapture({
       {realtimeState.isRunning && realtimeState.emotion && (
         <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded">
           <h3 className="text-lg font-semibold text-teal-900 mb-3">
-            📊 Emoción actual (tiempo real):
+            Emoción actual (tiempo real):
           </h3>
 
           {realtimeState.faceDetected ? (
@@ -117,7 +117,7 @@ export function RealtimeCapture({
             </div>
           ) : (
             <div className="text-yellow-700">
-              <p className="font-semibold">⚠️ No se detecta rostro</p>
+              <p className="font-semibold">No se detecta rostro</p>
               <p className="text-sm mt-1">Asegúrate de estar frente a la cámara</p>
             </div>
           )}

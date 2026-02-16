@@ -2,7 +2,7 @@
 Script de demostración de captura de webcam con reconocimiento emocional.
 
 Este script utiliza el EmotionPipeline integrado que conecta captura de video,
-detección emocional facial y mapeo a coordenadas Valence-Arousal en tiempo real.
+detección emocional facial y mapeo a coordenadas Valencia-Activación en tiempo real.
 
 Uso:
     python backend/scripts/run_webcam_demo.py
@@ -132,7 +132,7 @@ def main():
                 cv2.LINE_AA
             )
             
-            # Mostrar coordenadas Valence-Arousal
+            # Mostrar coordenadas Valencia-Activación
             va_text = f"V: {valence:+.2f}  A: {arousal:+.2f}"
             cv2.putText(
                 frame,

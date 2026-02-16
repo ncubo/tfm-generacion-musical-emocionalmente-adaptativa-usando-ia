@@ -1,8 +1,8 @@
 """
-Tabla de mapeo de emociones discretas a coordenadas Valence-Arousal.
+Tabla de mapeo de emociones discretas a coordenadas Valencia-Activación.
 
 Este módulo define la tabla de correspondencia entre emociones básicas
-y sus coordenadas en el espacio bidimensional Valence-Arousal según el
+y sus coordenadas en el espacio bidimensional Valencia-Activación según el
 modelo Circumplex de Russell (1980).
 
 Referencias:

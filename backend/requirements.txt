@@ -16,6 +16,11 @@ torch>=2.0.0  # PyTorch para el modelo Transformer
 miditok>=3.0.0  # Tokenización MIDI (REMI encoding) - requiere v3.0+ para symusic backend
 transformers>=4.40,<5  # Hugging Face Transformers para modelo Maestro-REMI (https://huggingface.co/NathanFradet/Maestro-REMI-bpe20k)
 
+# Dependencias para construcción de datasets
+datasets>=2.0.0  # HuggingFace datasets para fine-tuning
+pandas>=2.0.0  # Procesamiento de CSV con labels
+tqdm>=4.65.0  # Progress bars para procesamiento batch
+
 # Dependencias para API REST
 flask>=3.0.0
 flask-cors>=4.0.0

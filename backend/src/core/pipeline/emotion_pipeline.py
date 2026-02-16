@@ -3,7 +3,7 @@ Pipeline de procesamiento emocional en tiempo real.
 
 Este módulo implementa un pipeline integrado que conecta la captura de video,
 detección emocional facial, normalización de emociones y mapeo a coordenadas
-Valence-Arousal, con suavizado temporal para estabilizar las predicciones.
+Valencia-Activación, con suavizado temporal para estabilizar las predicciones.
 
 Estrategias de estabilización implementadas:
 1. Media Móvil Exponencial (EMA) para valores V/A - más responsiva que SMA

@@ -6,23 +6,20 @@ Backend del sistema de generación musical adaptativa basada en reconocimiento e
 
 ```
 backend/
-├── requirements.txt          # Dependencias del proyecto
+├── requirements.txt
 ├── src/
-│   ├── __init__.py
-│   ├── app.py               # Aplicación principal (placeholder)
-│   └── core/
-│       ├── __init__.py
-│       ├── camera/          # Captura de webcam
-│       ├── emotion/         # Detección emocional facial
-│       ├── va/              # Mapeo a Valence-Arousal
-│       ├── music/           # Parámetros musicales y generación MIDI
-│       ├── pipeline/        # Pipeline integrado
-│       └── utils/           # Utilidades matemáticas
-├── scripts/
-│   ├── run_webcam_demo.py              # Demo de webcam + emociones
-│   ├── generate_baseline_from_webcam.py # Generación MIDI desde webcam
-│   └── test_midi_generation.py         # Test de generación MIDI
-└── .gitignore
+│   ├── app.py               # API Flask
+│   ├── core/
+│   │   ├── camera/          # Captura webcam
+│   │   ├── emotion/         # Detección emocional
+│   │   ├── va/              # Mapeo Valencia-Activación
+│   │   ├── music/           # Generación MIDI
+│   │   ├── pipeline/        # Pipeline integrado
+│   │   └── utils/           # Utilidades
+│   └── routes/             # Endpoints API
+├── scripts/                 # Demos y análisis
+├── data/                    # Datasets
+└── metrics/                 # Resultados benchmarks
 ```
 
 ## Instalación
@@ -33,13 +30,13 @@ backend/
 - Webcam funcional para captura de video en tiempo real
 - Permisos de sistema para acceso a la cámara
 
-### Creación de Entorno Virtual
+### Entorno Virtual
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # En macOS/Linux
+python -m venv .venv
+source .venv/bin/activate  # macOS/Linux
 # o
-venv\Scripts\activate  # En Windows
+.venv\Scripts\activate  # Windows
 ```
 
 ### Instalación de Dependencias
@@ -51,13 +48,16 @@ pip install -r requirements.txt
 
 ### Dependencias Principales
 
-- **opencv-python**: Captura de video desde webcam
-- **deepface**: Framework de reconocimiento emocional facial
-- **mido**: Librería para generación de archivos MIDIal
+- **opencv-python**: Captura de video
+- **deepface**: Reconocimiento emocional facial
+- **mido**: Generación de archivos MIDI
+- **miditok**: Tokenización REMI (Maestro-REMI-bpe20k)
+- **transformers**: Modelos HuggingFace
+- **datasets**: Construcción de datasets fine-tuning
 
 ### Demo 1: Reconocimiento Emocional en Tiempo Real
 
-Muestra la emoción detectada y las coordenadas Valence-Arousal en tiempo real con estabilización temporal:
+Muestra la emoción detectada y las coordenadas Valencia-Activación en tiempo real con estabilización temporal:
 
 ```bash
 python scripts/run_webcam_demo.py
@@ -197,43 +197,19 @@ print(f"MIDI generado: {output_path}")
 ```
 ## Arquitectura del Sistema de Mapeo Emocional
 
-### Flujo de Procesamiento: Emoción a Música
+### Flujo de Procesamiento
 
-1. **Captura de Video**: Webcam captura frames en tiempo real
-2. **Detección Facial**: DeepFace detecta emoción facial con scores de confianza
-3. **Normalización**: Emoción se normaliza al conjunto estándar
-4. **Estabilización Temporal**:
-   - **Filtro de Confianza**: Solo acepta detecciones con confianza > umbral
-   - **Ventana de Mayoría**: Emoción discreta se estabiliza por consenso
-   - **EMA para V/A**: Suavizado exponencial de valencia y arousal
-5. **Mapeo VA**: Emoción estable → coordenadas continuas (Valence, Arousal)
-6. **Parámetros Musicales**: Coordenadas VA → parámetros MIDI
-7. **Generación MIDI**: Parámetros → archivo MIDI reproducible
+1. **Captura**: Webcam captura frames en tiempo real
+2. **Detección**: DeepFace detecta emoción facial con scores de confianza
+3. **Estabilización Temporal**:
+   - Filtro de confianza (>60%)
+   - Ventana de mayoría (emoción discreta)
+   - EMA para V/A (suavizado exponencial)
+4. **Mapeo VA**: Emoción → coordenadas Valencia-Activación
+5. **Parámetros Musicales**: VA → tempo, modo, densidad, etc.
+6. **Generación MIDI**: Parámetros → archivo MIDI
 
-### Mejoras de Estabilidad Temporal
-
-El sistema implementa un **mecanismo dual de estabilización**:
-
-**1. Media Móvil Exponencial (EMA) para Valence-Arousal:**
-- Más responsive que media móvil simple
-- Balance entre suavizado y capacidad de respuesta
-- Configurable mediante parámetro `alpha`
-
-**2. Ventana de Mayoría para Emoción Discreta:**
-- Evita "parpadeos" entre emociones
-- Requiere consenso en ventana temporal
-- Configurable mediante parámetro `window_size`
-
-**3. Filtro de Confianza:**
-- Rechaza detecciones de baja calidad
-- Reduce falsos positivos
-- Configurable mediante parámetro `min_confidence`
-
-**Resultado:** Sistema más robusto y perceptualmente estable sin comprometer latencia.
-
-Ver documentación completa en [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md).
-5. **Parámetros**: VA → parámetros musicales (tempo, modo, densidad, etc.)
-6. **Generación**: Parámetros → archivo MIDI
+Ver detalles técnicos en [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md).
 
 ### Mapeo Emociones Básicas
 
@@ -257,10 +233,15 @@ core/
 └── utils/           # Funciones matemáticas (clamp, lerp, etc.)
 ```
 
-## Notas Importantes
+## Documentación Adicional
 
-### Primera Ejecución
+- [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md): Estabilización temporal del reconocimiento emocional
+- [DATASET_FINETUNING_README.md](DATASET_FINETUNING_README.md): Construcción de dataset para fine-tuning
+- [BENCHMARK_README.md](BENCHMARK_README.md): Evaluación comparativa de motores
+- [EVALUACION_RENDIMIENTO.md](EVALUACION_RENDIMIENTO.md): Métricas de rendimiento
+- [PREPARACION_DATASET.md](PREPARACION_DATASET.md): Preparación del Lakh MIDI dataset
 
-- DeepFace descarga automáticamente los modelos preentrenados (aproximadamente 100MB)
-- El proceso de descarga puede tardar varios minutos dependiendo de la conexión
-- Los modelos se almacenan en caché local para ejecuciones posteriores
+## Notas
+
+- DeepFace descarga modelos preentrenados (~100MB) en primera ejecución
+- Modelos se cachean localmente

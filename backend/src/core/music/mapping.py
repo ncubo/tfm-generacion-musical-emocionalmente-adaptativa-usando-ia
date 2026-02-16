@@ -1,5 +1,5 @@
 """
-Mapeo de coordenadas Valence-Arousal a parámetros musicales.
+Mapeo de coordenadas Valencia-Activación a parámetros musicales.
 
 Este módulo implementa funciones matemáticas explícitas para convertir
 coordenadas emocionales en el espacio VA a parámetros musicales controlables
@@ -25,7 +25,7 @@ from ..utils import clamp, lerp, to_unit
 
 def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     """
-    Convierte coordenadas Valence-Arousal a parámetros musicales.
+    Convierte coordenadas Valencia-Activación a parámetros musicales.
     
     Este es el mapeo central del sistema que traduce estados emocionales
     continuos a parámetros musicales discretos y continuos que pueden

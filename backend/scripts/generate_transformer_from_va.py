@@ -3,7 +3,7 @@
 Script de prueba para generación de MIDI con HF Maestro-REMI desde coordenadas V/A.
 
 Este script permite generar archivos MIDI usando el modelo Hugging Face Maestro-REMI,
-condicionado indirectamente por valores manuales de Valence-Arousal.
+condicionado indirectamente por valores manuales de Valencia-Activación.
 
 Modelo usado: https://huggingface.co/NathanFradet/Maestro-REMI-bpe20k
 
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Genera MIDI con HF Maestro-REMI desde coordenadas Valence-Arousal',
+        description='Genera MIDI con HF Maestro-REMI desde coordenadas Valencia-Activación',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__
     )

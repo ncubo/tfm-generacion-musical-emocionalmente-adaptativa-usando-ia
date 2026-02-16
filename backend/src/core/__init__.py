@@ -4,7 +4,7 @@ Core - Módulo principal del sistema de reconocimiento emocional y mapeo musical
 Este paquete contiene todos los componentes fundamentales del sistema:
 - camera: Captura de video desde webcam
 - emotion: Detección y normalización emocional
-- va: Mapeo de emociones a espacio Valence-Arousal
+- va: Mapeo de emociones a espacio Valencia-Activación
 - music: Conversión de coordenadas VA a parámetros musicales y generación MIDI
 - pipeline: Orquestación del flujo completo
 - utils: Utilidades matemáticas comunes

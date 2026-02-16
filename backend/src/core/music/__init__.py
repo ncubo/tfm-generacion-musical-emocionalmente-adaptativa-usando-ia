@@ -1,7 +1,7 @@
 """
 Módulo de traducción de emociones a parámetros musicales.
 
-Este módulo implementa el mapeo desde el espacio Valence-Arousal
+Este módulo implementa el mapeo desde el espacio Valencia-Activación
 a parámetros musicales interpretables para generación MIDI.
 """
 

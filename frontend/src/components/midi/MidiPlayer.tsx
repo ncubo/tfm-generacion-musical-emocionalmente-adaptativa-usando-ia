@@ -289,7 +289,7 @@ export function MidiPlayer({ midiUrl }: MidiPlayerProps) {
       {/* Error */}
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-sm text-red-800">❌ {error}</p>
+          <p className="text-sm text-red-800">{error}</p>
         </div>
       )}
 

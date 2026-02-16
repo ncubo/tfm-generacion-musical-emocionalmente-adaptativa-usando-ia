@@ -337,7 +337,7 @@ def prepare_lakh_piano_subset(
             
             stats['accepted'] += 1
             logger.debug(
-                f"✓ Aceptado: {midi_path.name} "
+                f"Aceptado: {midi_path.name} "
                 f"({metadata['duration_seconds']:.1f}s, "
                 f"{metadata['total_notes']} notas, "
                 f"{metadata['piano_tracks_found']} piano tracks)"
@@ -530,7 +530,7 @@ Procesamiento:
     )
     
     if stats['accepted'] > 0:
-        logger.info("✓ Proceso completado exitosamente")
+        logger.info("Proceso completado exitosamente")
         logger.info(f"\nPróximos pasos:")
         logger.info(f"1. Analizar subset: python scripts/analyze_lakh_subset.py --metadata_csv {metadata_dir / 'lakh_piano_subset_metadata.csv'}")
         logger.info(f"2. Etiquetar V/A heurísticamente")

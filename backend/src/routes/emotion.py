@@ -94,7 +94,7 @@ def detect_emotion():
     Utiliza el pipeline emocional para:
     1. Capturar un frame de la webcam (servidor)
     2. Detectar la emoción facial
-    3. Mapear a coordenadas Valence-Arousal
+    3. Mapear a coordenadas Valencia-Activación
     4. Aplicar suavizado temporal
     
     Returns:

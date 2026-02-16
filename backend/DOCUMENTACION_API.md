@@ -215,7 +215,7 @@ backend/src/
     ├── camera/              # Captura de webcam
     ├── emotion/             # Detección emocional
     ├── pipeline/            # Pipeline integrado
-    ├── va/                  # Mapeo Valence-Arousal
+    ├── va/                  # Mapeo Valencia-Activación
     └── music/               # Generación MIDI
 ```
 
