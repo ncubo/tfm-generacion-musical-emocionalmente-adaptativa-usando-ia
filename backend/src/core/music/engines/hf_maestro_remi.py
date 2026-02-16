@@ -198,15 +198,35 @@ def _generate_primer(
     with tempfile.NamedTemporaryFile(suffix='.mid', delete=False) as tmp:
         primer_path = Path(tmp.name)
     
+    # Garantizar density mínima para el primer (evitar MIDIs vacíos)
+    # Esto no afecta la generación del transformer, solo el prompt inicial
+    primer_params = params.copy()
+    original_density = primer_params.get('density', 0.5)
+    
+    # Si density es muy baja, aumentarla solo para el primer
+    if original_density < 0.4:
+        primer_params['density'] = 0.5  # Mínimo que garantiza ~2 notas por compás
+        logger.debug(f"Ajustando density del primer: {original_density:.2f} → 0.50 (evitar MIDI vacío)")
+    
     # Generar baseline corto como primer
     generate_midi_baseline(
-        params=params,
+        params=primer_params,
         out_path=str(primer_path),
         length_bars=length_bars,
         seed=seed
     )
     
-    logger.debug(f"Primer generado: {primer_path}")
+    # Diagnóstico: verificar contenido del primer
+    import mido
+    primer_mid = mido.MidiFile(str(primer_path))
+    note_count = sum(1 for track in primer_mid.tracks 
+                     for msg in track 
+                     if msg.type == 'note_on' and msg.velocity > 0)
+    logger.debug(f"Primer generado: {primer_path} con {note_count} notas")
+    
+    if note_count == 0:
+        logger.warning(f"⚠️  ADVERTENCIA: Primer MIDI vacío (0 notas). Params: {params}")
+    
     return primer_path
 
 
@@ -249,7 +269,8 @@ def generate_midi_hf_maestro_remi(
     params: Dict[str, Any],
     out_path: str,
     length_bars: int = 8,
-    seed: Optional[int] = None
+    seed: Optional[int] = None,
+    max_new_tokens: Optional[int] = None
 ) -> str:
     """
     Genera un archivo MIDI usando el modelo Maestro-REMI preentrenado.
@@ -268,6 +289,8 @@ def generate_midi_hf_maestro_remi(
         out_path: Path donde guardar el MIDI generado
         length_bars: Número de compases objetivo (default: 8)
         seed: Semilla aleatoria opcional para reproducibilidad
+        max_new_tokens: Número fijo de tokens a generar (si None, se calcula automático)
+                       Útil para benchmarks donde se requiere longitud constante
         
     Returns:
         Path al archivo MIDI generado (out_path)
@@ -289,6 +312,14 @@ def generate_midi_hf_maestro_remi(
             if device == "cuda":
                 torch.cuda.manual_seed_all(seed)
             logger.info(f"Semilla configurada: {seed}")
+        
+        # Diagnóstico: mostrar parámetros musicales recibidos
+        logger.debug(f"Parámetros musicales recibidos:")
+        logger.debug(f"  - tempo_bpm: {params.get('tempo_bpm', 'N/A')}")
+        logger.debug(f"  - density: {params.get('density', 'N/A')}")
+        logger.debug(f"  - rhythm_complexity: {params.get('rhythm_complexity', 'N/A')}")
+        logger.debug(f"  - velocity_mean: {params.get('velocity_mean', 'N/A')}")
+        logger.debug(f"  - pitch_low/high: {params.get('pitch_low', 'N/A')}/{params.get('pitch_high', 'N/A')}")
         
         # 1. Derivar configuración de sampling
         sampling_config = _derive_sampling_config(params)
@@ -314,12 +345,29 @@ def generate_midi_hf_maestro_remi(
             input_token_ids = primer_tokens.ids
             logger.info(f"Primer convertido a {len(input_token_ids)} tokens")
             
-            # 4. Calcular tokens a generar
-            # Restar los compases del primer del total deseado
-            remaining_bars = max(1, length_bars - 2)
-            max_new_tokens = remaining_bars * sampling_config['tokens_per_bar']
+            # Diagnóstico: verificar tokens vacíos
+            if len(input_token_ids) == 0:
+                logger.error(f"   ERROR: Tokenización resultó en 0 tokens!")
+                logger.error(f"   Params musicales: {params}")
+                logger.error(f"   Primer path: {primer_path}")
+                raise RuntimeError(
+                    f"El primer MIDI no pudo ser tokenizado (0 tokens). "
+                    f"Probablemente el MIDI generado está vacío o es inválido para REMI."
+                )
             
-            logger.info(f"Generando {max_new_tokens} nuevos tokens para {remaining_bars} compases...")
+            # 4. Calcular tokens a generar
+            # Si max_new_tokens se especifica explícitamente, usarlo (para benchmarks)
+            # Si no, calcular dinámicamente basado en compases restantes
+            if max_new_tokens is not None:
+                tokens_to_generate = max_new_tokens
+                logger.info(f"Usando max_new_tokens fijo: {tokens_to_generate} (benchmark mode)")
+            else:
+                # Restar los compases del primer del total deseado
+                remaining_bars = max(1, length_bars - 2)
+                tokens_to_generate = remaining_bars * sampling_config['tokens_per_bar']
+                logger.info(f"Calculando tokens dinámicamente para {remaining_bars} compases: {tokens_to_generate}")
+            
+            logger.info(f"Generando {tokens_to_generate} nuevos tokens...")
             
             # 5. Generar continuación con el modelo (API oficial de HF)
             # Convertir lista de IDs a tensor (batch_size=1)
@@ -327,7 +375,7 @@ def generate_midi_hf_maestro_remi(
             
             generated_token_ids = model.generate(
                 input_tensor,
-                max_new_tokens=max_new_tokens,
+                max_new_tokens=tokens_to_generate,
                 temperature=sampling_config['temperature'],
                 top_p=sampling_config['top_p'],
                 do_sample=sampling_config['do_sample'],
