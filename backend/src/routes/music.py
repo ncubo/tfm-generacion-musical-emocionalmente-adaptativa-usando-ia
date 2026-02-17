@@ -132,7 +132,7 @@ def generate_midi():
             }), 400
         
         # Validar engine
-        valid_engines = ['baseline', 'transformer_pretrained']
+        valid_engines = ['baseline', 'transformer_pretrained', 'transformer_finetuned']
         if engine not in valid_engines:
             return jsonify({
                 'error': 'Engine no válido',
@@ -236,6 +236,42 @@ def generate_midi():
                         # Si falla el modelo HF, fallback a baseline con warning
                         current_app.logger.warning(
                             f"Engine transformer_pretrained falló: {e}. "
+                            f"Fallback a baseline."
+                        )
+                        # Regenerar con baseline
+                        midi_filename_fallback = f"emotion_baseline_fallback_{timestamp}.mid"
+                        midi_path_fallback = output_dir / midi_filename_fallback
+                        generated_path = generate_midi_baseline(
+                            params=music_params,
+                            out_path=str(midi_path_fallback),
+                            length_bars=length_bars,
+                            seed=seed
+                        )
+                        engine = 'baseline'  # Actualizar engine en respuesta
+                
+                elif engine == 'transformer_finetuned':
+                    # Obtener repo ID del modelo finetuned desde variable de entorno o default
+                    finetuned_repo = os.environ.get(
+                        'MAESTRO_FINETUNED_REPO',
+                        'mmayorga/maestro-remi-finetuned-va'
+                    )
+                    
+                    try:
+                        current_app.logger.info(
+                            f"Generando con modelo finetuned desde HuggingFace Hub: {finetuned_repo}"
+                        )
+                        generated_path = generate_midi_hf_maestro_remi(
+                            params=music_params,
+                            out_path=str(midi_path),
+                            length_bars=length_bars,
+                            seed=seed,
+                            model_source="pretrained",  # Usa 'pretrained' porque carga desde HF Hub
+                            model_id_or_path=finetuned_repo
+                        )
+                    except (RuntimeError, NotImplementedError) as e:
+                        # Si falla el modelo finetuned, fallback a baseline con warning
+                        current_app.logger.warning(
+                            f"Engine transformer_finetuned falló (repo: {finetuned_repo}): {e}. "
                             f"Fallback a baseline."
                         )
                         # Regenerar con baseline

@@ -124,7 +124,7 @@ class ApiClient {
    * POST /generate-midi - Genera un archivo MIDI basado en emoción
    */
   async generateMidi(params: {
-    engine?: 'baseline' | 'transformer_pretrained';
+    engine?: 'baseline' | 'transformer_pretrained' | 'transformer_finetuned';
     seed?: number;
     length_bars?: number;
     valence?: number;

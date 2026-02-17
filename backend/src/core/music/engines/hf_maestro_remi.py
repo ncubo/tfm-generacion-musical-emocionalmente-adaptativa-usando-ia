@@ -223,14 +223,16 @@ def _load_model_and_tokenizer(
     
     Soporta:
     - Modelos pretrained desde HuggingFace Hub (model_source="pretrained")
-    - Modelos finetuned locales (model_source="finetuned")
+    - Modelos finetuned desde HuggingFace Hub (usar model_source="pretrained" con repo finetuned)
+    - Modelos finetuned locales (model_source="finetuned" con path local)
     - Cache automático: no recarga el mismo modelo múltiples veces
     - Añade conditioning tokens VA si ensure_conditioning_tokens=True
+    - No duplica conditioning tokens si ya existen en el tokenizer
     
     Args:
         model_source: "pretrained" (HF Hub) o "finetuned" (path local)
         model_id_or_path: 
-            - Si pretrained: HF Hub ID (ej: "Natooz/Maestro-REMI-bpe20k")
+            - Si pretrained: HF Hub ID (ej: "Natooz/Maestro-REMI-bpe20k" o "user/modelo-finetuned")
             - Si finetuned: path local al checkpoint (ej: "models/maestro_finetuned/final")
         ensure_conditioning_tokens: Si True, añade conditioning tokens VA al tokenizer/modelo
         
@@ -256,9 +258,17 @@ def _load_model_and_tokenizer(
     try:
         # Cargar tokenizador REMI
         if model_source == "pretrained":
-            # Desde HF Hub
-            tokenizer = miditok.REMI.from_pretrained(model_id_or_path)
-            logger.info(f"Tokenizador REMI cargado desde HF Hub: {model_id_or_path}")
+            # Desde HF Hub - intentar cargar tokenizer del repo
+            try:
+                tokenizer = miditok.REMI.from_pretrained(model_id_or_path)
+                logger.info(f"Tokenizador REMI cargado desde HF Hub: {model_id_or_path}")
+            except (TypeError, KeyError, ValueError) as e:
+                # Si el tokenizer del repo tiene formato incompatible, usar base
+                logger.warning(
+                    f"Tokenizer de {model_id_or_path} incompatible ({type(e).__name__}), "
+                    f"usando tokenizer base Natooz/Maestro-REMI-bpe20k"
+                )
+                tokenizer = miditok.REMI.from_pretrained("Natooz/Maestro-REMI-bpe20k")
         elif model_source == "finetuned":
             # Desde path local
             # Primero intentar cargar desde el checkpoint local

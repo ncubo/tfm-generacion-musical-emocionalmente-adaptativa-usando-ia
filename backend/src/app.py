@@ -15,10 +15,14 @@ Solo se activa cuando se necesita (/emotion o /generate-midi).
 """
 
 import os
-from flask import Flask, send_from_directory
-from flask_cors import CORS
 from pathlib import Path
 import logging
+from flask import Flask, send_from_directory
+from flask_cors import CORS
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde archivo .env (si existe)
+load_dotenv()
 
 # Importar blueprints
 from .routes import health_bp, emotion_bp, music_bp

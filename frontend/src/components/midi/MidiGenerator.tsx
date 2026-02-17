@@ -8,7 +8,7 @@ interface MidiGeneratorProps {
   emotionData: EmotionFromFrameResponse | null;
 }
 
-type MusicEngine = 'baseline' | 'transformer_pretrained';
+type MusicEngine = 'baseline' | 'transformer_pretrained' | 'transformer_finetuned';
 
 const ENGINE_INFO = {
   baseline: {
@@ -19,6 +19,11 @@ const ENGINE_INFO = {
   transformer_pretrained: {
     name: 'HF Maestro-REMI',
     description: 'Modelo Transformer preentrenado (Hugging Face)',
+    icon: Bot,
+  },
+  transformer_finetuned: {
+    name: 'Transformer (fine-tuned)',
+    description: 'Modelo ajustado con Lakh piano-only + tokens VA',
     icon: Bot,
   },
 } as const;
