@@ -74,20 +74,17 @@ Los tokens se añaden al tokenizador con `add_to_vocab()` DURANTE la construcci�
 
 **Distribución VA:** Sesgo hacia valence negativo (música contemplativa), arousal uniforme.
 
-## Fine-tuning (próximo ticket)
+## Fine-tuning
 
 ```python
-# Cargar tokenizador con MISMOS tokens (mismo orden)
+# Cargar tokenizador con conditioning tokens (mismo orden que build)
 tokenizer = load_remi_tokenizer("Natooz/Maestro-REMI-bpe20k")
-for token in conditioning_tokens:  # MISMO orden que build
-    tokenizer.add_to_vocab([token])
-assert len(tokenizer) == 20018
+tokenizer.add_to_vocab(conditioning_tokens)  # vocab 20000 → 20018
 
-# Redimensionar embeddings
+# Redimensionar embeddings del modelo y entrenar
 model = AutoModelForCausalLM.from_pretrained("Natooz/Maestro-REMI-bpe20k")
-model.resize_token_embeddings(20018)
-
-# Entrenar con Trainer (causal LM)
+model.resize_token_embeddings(len(tokenizer))
+# Trainer con causal LM objective
 ```
 
 ## Notas Técnicas

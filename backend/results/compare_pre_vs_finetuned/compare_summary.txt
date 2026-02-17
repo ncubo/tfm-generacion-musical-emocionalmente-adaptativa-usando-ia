@@ -1,0 +1,45 @@
+================================================================================
+RESUMEN: COMPARACIÓN PRETRAINED VS FINETUNED
+================================================================================
+
+Total de combinaciones VA evaluadas: 16
+Muestras por combinación: 3
+
+HALLAZGOS PRINCIPALES:
+
+1. DENSIDAD DE NOTAS:
+   - Pretrained: 4.00 notas/s (promedio)
+   - Finetuned: 2.09 notas/s (promedio)
+   - Diferencia: -47.7%
+   → Pretrained genera MIDIs más densos
+
+2. RANGO DE PITCH:
+   - Pretrained: 18.0 semitonos (promedio)
+   - Finetuned: 10.7 semitonos (promedio)
+   - Diferencia: -7.3 semitonos
+   → Pretrained usa rangos más amplios
+
+3. VELOCIDAD MEDIA:
+   - Pretrained: 76.9 (promedio)
+   - Finetuned: 82.6 (promedio)
+   - Diferencia: +5.8
+   → Finetuned genera dinámicas más fuertes
+
+4. CONSISTENCIA (variabilidad entre seeds):
+   - Pretrained: std promedio = 1.367
+   - Finetuned: std promedio = 0.570
+   → Finetuned es más consistente (menor variabilidad)
+
+5. TOTAL DE NOTAS POR MIDI:
+   - Pretrained: 287.5 notas (promedio)
+   - Finetuned: 219.6 notas (promedio)
+   - Diferencia: -23.6%
+
+================================================================================
+CONCLUSIÓN:
+
+Se observan diferencias significativas entre pretrained y finetuned en:
+  - Densidad de notas (47.7% diferencia)
+  - Rango de pitch (7.3 semitonos diferencia)
+
+================================================================================
