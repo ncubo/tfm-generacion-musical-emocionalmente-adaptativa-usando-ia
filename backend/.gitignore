@@ -75,3 +75,6 @@ models/maestro_finetuned/
 
 # Finetuning datasets (archivo grande, no se sube al repositorio)
 data/finetune_dataset/
+
+# Variables de entorno (puede contener claves sensibles, no subir al repositorio)
+.env
