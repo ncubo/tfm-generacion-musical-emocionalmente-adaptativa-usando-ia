@@ -14,6 +14,7 @@ Características:
 """
 
 import logging
+import json
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 import tempfile
@@ -24,9 +25,9 @@ _miditok = None
 _torch = None
 _symusic = None
 
-# Singletons para el modelo y tokenizador
-_model = None
-_tokenizer = None
+# Cache multi-modelo: key = (model_source, model_id_or_path) -> (model, tokenizer)
+# Permite cachear tanto pretrained como finetuned sin recargar
+_MODEL_CACHE = {}
 _device = None
 
 logger = logging.getLogger(__name__)
@@ -91,47 +92,233 @@ def _get_device():
     return _device
 
 
-def _load_model_and_tokenizer(model_id: str = "Natooz/Maestro-REMI-bpe20k") -> Tuple[Any, Any]:
+def _get_cache_key(model_source: str, model_id_or_path: str) -> str:
     """
-    Carga el modelo y tokenizador de manera lazy (singleton).
+    Genera clave de cache para identificar modelo único.
     
     Args:
-        model_id: ID del modelo en Hugging Face Hub
+        model_source: "pretrained" o "finetuned"
+        model_id_or_path: HF ID o path local
+        
+    Returns:
+        String única para cache
+    """
+    return f"{model_source}::{model_id_or_path}"
+
+
+def _load_conditioning_tokens_config() -> Optional[Dict[str, Any]]:
+    """
+    Carga configuración de conditioning tokens desde dataset_info.json.
+    
+    Returns:
+        Dict con "conditioning_tokens" y "conditioning_token_ids" o None si no existe
+    """
+    import json
+    
+    # Path al dataset_info.json (relativo a este archivo)
+    # Este archivo está en: backend/src/core/music/engines/hf_maestro_remi.py
+    # Necesitamos llegar a: backend/data/finetune_dataset/dataset_info.json
+    # Subir 4 niveles: engines -> music -> core -> src -> backend
+    backend_dir = Path(__file__).parent.parent.parent.parent.parent
+    dataset_info_path = backend_dir / "data" / "finetune_dataset" / "dataset_info.json"
+    
+    if not dataset_info_path.exists():
+        logger.warning(f"dataset_info.json no encontrado en: {dataset_info_path}")
+        return None
+    
+    try:
+        with open(dataset_info_path, 'r') as f:
+            config = json.load(f)
+        
+        if "conditioning_tokens" not in config:
+            logger.warning("dataset_info.json no contiene 'conditioning_tokens'")
+            return None
+        
+        logger.info(f"Configuración de conditioning tokens cargada: {len(config['conditioning_tokens'])} tokens")
+        return config
+        
+    except Exception as e:
+        logger.error(f"Error leyendo dataset_info.json: {e}")
+        return None
+
+
+def _ensure_conditioning_tokens(
+    tokenizer,
+    model,
+    device: str,
+    original_vocab_size: int
+) -> Tuple[Any, Any, int]:
+    """
+    Asegura que el tokenizer y modelo tengan conditioning tokens VA añadidos.
+    
+    Si el tokenizer ya tiene los tokens (vocab_size > original_vocab_size), no hace nada.
+    Si faltan, los añade desde dataset_info.json y hace resize_token_embeddings del modelo.
+    
+    Args:
+        tokenizer: Tokenizador REMI (miditok)
+        model: Modelo HF AutoModelForCausalLM
+        device: Device donde está el modelo
+        original_vocab_size: Vocab size base del modelo REMI (20000)
+        
+    Returns:
+        Tupla (tokenizer_actualizado, model_actualizado, num_tokens_añadidos)
+    """
+    current_vocab_size = len(tokenizer)
+    
+    # Si ya tiene más tokens que el original, asumir que ya están los conditioning tokens
+    if current_vocab_size > original_vocab_size:
+        num_added = current_vocab_size - original_vocab_size
+        logger.info(f"Tokenizer ya tiene {num_added} conditioning tokens (vocab_size={current_vocab_size})")
+        return tokenizer, model, num_added
+    
+    # Cargar configuración de conditioning tokens
+    config = _load_conditioning_tokens_config()
+    
+    if config is None:
+        logger.warning("No se pudo cargar conditioning tokens. Modelo usará vocab original.")
+        return tokenizer, model, 0
+    
+    conditioning_tokens = config["conditioning_tokens"]
+    logger.info(f"Añadiendo {len(conditioning_tokens)} conditioning tokens al tokenizer...")
+    
+    # Añadir tokens al tokenizer (miditok API)
+    for token in conditioning_tokens:
+        tokenizer.add_to_vocab([token])
+    
+    new_vocab_size = len(tokenizer)
+    num_added = new_vocab_size - original_vocab_size
+    
+    logger.info(f"Vocab size: {original_vocab_size} -> {new_vocab_size} (+{num_added})")
+    
+    # Resize embeddings del modelo para incluir nuevos tokens
+    _, _, torch, _ = _lazy_import_deps()
+    
+    logger.info(f"Redimensionando embeddings del modelo a {new_vocab_size}...")
+    model.resize_token_embeddings(new_vocab_size)
+    
+    # Inicializar embeddings de nuevos tokens con mean de embeddings existentes
+    with torch.no_grad():
+        # Obtener embeddings layer
+        embeddings = model.get_input_embeddings()
+        
+        # Mean de embeddings existentes
+        mean_embedding = embeddings.weight[:original_vocab_size].mean(dim=0)
+        
+        # Asignar a nuevos tokens
+        for i in range(original_vocab_size, new_vocab_size):
+            embeddings.weight[i] = mean_embedding
+    
+    logger.info(f"Embeddings de {num_added} nuevos tokens inicializados")
+    
+    return tokenizer, model, num_added
+
+
+def _load_model_and_tokenizer(
+    model_source: str = "pretrained",
+    model_id_or_path: str = "Natooz/Maestro-REMI-bpe20k",
+    ensure_conditioning_tokens: bool = True
+) -> Tuple[Any, Any]:
+    """
+    Carga el modelo y tokenizador con cache multi-modelo.
+    
+    Soporta:
+    - Modelos pretrained desde HuggingFace Hub (model_source="pretrained")
+    - Modelos finetuned locales (model_source="finetuned")
+    - Cache automático: no recarga el mismo modelo múltiples veces
+    - Añade conditioning tokens VA si ensure_conditioning_tokens=True
+    
+    Args:
+        model_source: "pretrained" (HF Hub) o "finetuned" (path local)
+        model_id_or_path: 
+            - Si pretrained: HF Hub ID (ej: "Natooz/Maestro-REMI-bpe20k")
+            - Si finetuned: path local al checkpoint (ej: "models/maestro_finetuned/final")
+        ensure_conditioning_tokens: Si True, añade conditioning tokens VA al tokenizer/modelo
         
     Returns:
         Tupla (model, tokenizer)
     """
-    global _model, _tokenizer
+    global _MODEL_CACHE
     
-    if _model is None or _tokenizer is None:
-        transformers, miditok, torch, _ = _lazy_import_deps()
-        device = _get_device()
-        
-        logger.info(f"Cargando modelo HF: {model_id}...")
-        
-        try:
-            # Cargar tokenizador REMI desde HF Hub
-            _tokenizer = miditok.REMI.from_pretrained(model_id)
-            logger.info(f"Tokenizador REMI cargado: vocab_size={len(_tokenizer)}")
+    # Generar clave de cache
+    cache_key = _get_cache_key(model_source, model_id_or_path)
+    
+    # Retornar desde cache si ya está cargado
+    if cache_key in _MODEL_CACHE:
+        logger.debug(f"Usando modelo cacheado: {cache_key}")
+        return _MODEL_CACHE[cache_key]
+    
+    # Cargar modelo nuevo
+    transformers, miditok, torch, _ = _lazy_import_deps()
+    device = _get_device()
+    
+    logger.info(f"Cargando modelo: source={model_source}, path={model_id_or_path}")
+    
+    try:
+        # Cargar tokenizador REMI
+        if model_source == "pretrained":
+            # Desde HF Hub
+            tokenizer = miditok.REMI.from_pretrained(model_id_or_path)
+            logger.info(f"Tokenizador REMI cargado desde HF Hub: {model_id_or_path}")
+        elif model_source == "finetuned":
+            # Desde path local
+            # Primero intentar cargar desde el checkpoint local
+            local_path = Path(model_id_or_path)
+            if not local_path.exists():
+                raise FileNotFoundError(f"Modelo finetuned no encontrado: {local_path}")
             
-            # Cargar modelo de lenguaje causal
-            _model = transformers.AutoModelForCausalLM.from_pretrained(
-                model_id,
-                torch_dtype=torch.float32 if device == "cpu" else torch.float16
+            # Buscar tokenizer en el directorio del checkpoint
+            # En fine-tuning típicamente se guarda junto al modelo
+            tokenizer_path = local_path / "tokenizer"
+            
+            if tokenizer_path.exists():
+                tokenizer = miditok.REMI.from_pretrained(str(tokenizer_path))
+                logger.info(f"Tokenizador cargado desde checkpoint local: {tokenizer_path}")
+            else:
+                # Fallback: usar tokenizador base y añadir conditioning tokens después
+                logger.warning(f"Tokenizer no encontrado en {tokenizer_path}, usando base")
+                tokenizer = miditok.REMI.from_pretrained("Natooz/Maestro-REMI-bpe20k")
+        else:
+            raise ValueError(f"model_source inválido: {model_source} (debe ser 'pretrained' o 'finetuned')")
+        
+        original_vocab_size = 20000  # Vocab size base de Maestro-REMI-bpe20k
+        logger.info(f"Tokenizador cargado: vocab_size={len(tokenizer)}")
+        
+        # Cargar modelo de lenguaje causal
+        if model_source == "pretrained":
+            model = transformers.AutoModelForCausalLM.from_pretrained(
+                model_id_or_path,
+                dtype=torch.float32 if device == "cpu" else torch.float16
             )
-            _model.to(device)
-            _model.eval()
-            
-            logger.info(f"Modelo cargado exitosamente en {device}")
-            
-        except Exception as e:
-            logger.error(f"Error al cargar modelo/tokenizador: {e}", exc_info=True)
-            raise RuntimeError(
-                f"No se pudo cargar el modelo {model_id}. "
-                "Verifica tu conexión a internet y que transformers/miditok estén instalados."
-            ) from e
-    
-    return _model, _tokenizer
+        elif model_source == "finetuned":
+            local_path = Path(model_id_or_path)
+            model = transformers.AutoModelForCausalLM.from_pretrained(
+                str(local_path),
+                dtype=torch.float32 if device == "cpu" else torch.float16
+            )
+        
+        model.to(device)
+        model.eval()
+        
+        logger.info(f"Modelo cargado exitosamente en {device}")
+        
+        # Asegurar conditioning tokens si se solicita
+        if ensure_conditioning_tokens:
+            tokenizer, model, num_added = _ensure_conditioning_tokens(
+                tokenizer, model, device, original_vocab_size
+            )
+        
+        # Guardar en cache
+        _MODEL_CACHE[cache_key] = (model, tokenizer)
+        logger.info(f"Modelo cacheado: {cache_key}")
+        
+        return model, tokenizer
+        
+    except Exception as e:
+        logger.error(f"Error al cargar modelo/tokenizador: {e}", exc_info=True)
+        raise RuntimeError(
+            f"No se pudo cargar el modelo {model_id_or_path}. "
+            "Verifica tu conexión a internet (pretrained) o que el path exista (finetuned)."
+        ) from e
 
 
 def _derive_sampling_config(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -270,10 +457,12 @@ def generate_midi_hf_maestro_remi(
     out_path: str,
     length_bars: int = 8,
     seed: Optional[int] = None,
-    max_new_tokens: Optional[int] = None
+    max_new_tokens: Optional[int] = None,
+    model_source: str = "pretrained",
+    model_id_or_path: str = "Natooz/Maestro-REMI-bpe20k"
 ) -> str:
     """
-    Genera un archivo MIDI usando el modelo Maestro-REMI preentrenado.
+    Genera un archivo MIDI usando el modelo Maestro-REMI (pretrained o finetuned).
     
     Estrategia:
     1. Deriva config de sampling desde params
@@ -291,6 +480,8 @@ def generate_midi_hf_maestro_remi(
         seed: Semilla aleatoria opcional para reproducibilidad
         max_new_tokens: Número fijo de tokens a generar (si None, se calcula automático)
                        Útil para benchmarks donde se requiere longitud constante
+        model_source: "pretrained" (HF Hub) o "finetuned" (modelo local)
+        model_id_or_path: HF Hub ID o path local al checkpoint
         
     Returns:
         Path al archivo MIDI generado (out_path)
@@ -302,8 +493,12 @@ def generate_midi_hf_maestro_remi(
         # Lazy imports
         _, _, torch, symusic = _lazy_import_deps()
         
-        # Cargar modelo y tokenizador (lazy, singleton)
-        model, tokenizer = _load_model_and_tokenizer()
+        # Cargar modelo y tokenizador (con cache multi-modelo)
+        model, tokenizer = _load_model_and_tokenizer(
+            model_source=model_source,
+            model_id_or_path=model_id_or_path,
+            ensure_conditioning_tokens=True
+        )
         device = _get_device()
         
         # Configurar semilla si se proporciona
@@ -320,6 +515,7 @@ def generate_midi_hf_maestro_remi(
         logger.debug(f"  - rhythm_complexity: {params.get('rhythm_complexity', 'N/A')}")
         logger.debug(f"  - velocity_mean: {params.get('velocity_mean', 'N/A')}")
         logger.debug(f"  - pitch_low/high: {params.get('pitch_low', 'N/A')}/{params.get('pitch_high', 'N/A')}")
+        logger.debug(f"  - model_source: {model_source}, model_path: {model_id_or_path}")
         
         # 1. Derivar configuración de sampling
         sampling_config = _derive_sampling_config(params)

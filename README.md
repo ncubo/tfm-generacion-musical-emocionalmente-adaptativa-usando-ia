@@ -37,10 +37,20 @@ El frontend estará disponible en `http://localhost:5173`
 
 ## Documentación
 
+### General
 - [Backend README](backend/README.md)
 - [Frontend README](frontend/README.md)
 - [Documentación API](backend/DOCUMENTACION_API.md)
+
+### Dataset y Fine-tuning
+- [Preparación de Dataset](backend/PREPARACION_DATASET.md)
+- [Dataset Fine-tuning](backend/DATASET_FINETUNING.md)
+
+### Evaluación y Benchmarks
+- [Benchmark de Modelos](backend/BENCHMARK.md)
+- [Comparación Modelos](backend/COMPARACION_MODELOS.md)
 - [Evaluación de Rendimiento](backend/EVALUACION_RENDIMIENTO.md)
+- [Estabilización Temporal](backend/ESTABILIZACION_TEMPORAL.md)
 
 ## Tecnologías Principales
 

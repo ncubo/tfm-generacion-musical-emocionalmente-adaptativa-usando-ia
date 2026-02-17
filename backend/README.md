@@ -235,11 +235,18 @@ core/
 
 ## Documentación Adicional
 
-- [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md): Estabilización temporal del reconocimiento emocional
-- [DATASET_FINETUNING_README.md](DATASET_FINETUNING_README.md): Construcción de dataset para fine-tuning
-- [BENCHMARK_README.md](BENCHMARK_README.md): Evaluación comparativa de motores
-- [EVALUACION_RENDIMIENTO.md](EVALUACION_RENDIMIENTO.md): Métricas de rendimiento
+### Dataset y Fine-tuning
 - [PREPARACION_DATASET.md](PREPARACION_DATASET.md): Preparación del Lakh MIDI dataset
+- [DATASET_FINETUNING.md](DATASET_FINETUNING.md): Construcción de dataset para fine-tuning
+
+### Evaluación y Benchmarks
+- [BENCHMARK.md](BENCHMARK.md): Evaluación comparativa de motores
+- [COMPARACION_MODELOS.md](COMPARACION_MODELOS.md): Comparación pretrained vs finetuned
+- [EVALUACION_RENDIMIENTO.md](EVALUACION_RENDIMIENTO.md): Métricas de rendimiento
+
+### Sistema
+- [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md): Estabilización temporal del reconocimiento emocional
+- [DOCUMENTACION_API.md](DOCUMENTACION_API.md): Documentación completa de la API REST
 
 ## Notas
 
