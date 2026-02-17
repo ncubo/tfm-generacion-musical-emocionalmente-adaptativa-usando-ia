@@ -25,3 +25,7 @@ tqdm>=4.65.0  # Progress bars para procesamiento batch
 flask>=3.0.0
 flask-cors>=4.0.0
 gunicorn
+python-dotenv>=1.0.0  # Carga variables de entorno desde archivo .env
+
+# huggingface_hub para descargar modelos desde Hugging Face Hub
+huggingface_hub
