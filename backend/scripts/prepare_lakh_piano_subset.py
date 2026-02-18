@@ -8,7 +8,7 @@ Uso:
     python scripts/prepare_lakh_piano_subset.py \
         --input_dir data/lakh_raw \
         --output_dir data/lakh_piano_clean \
-        --max_files 2000 \
+        --max_files 5000 \
         --seed 42
 
 Author: Miguel (TFM Generación Musical Adaptativa)
@@ -207,7 +207,7 @@ def prepare_lakh_piano_subset(
     input_dir: Path,
     output_dir: Path,
     metadata_dir: Path,
-    max_files: int = 2000,
+    max_files: int = 5000,
     min_duration: float = 10.0,
     max_duration: float = 300.0,
     min_notes: int = 50,
@@ -449,8 +449,8 @@ Procesamiento:
     parser.add_argument(
         '--max_files',
         type=int,
-        default=2000,
-        help='Número máximo de archivos a aceptar (default: 2000)'
+        default=5000,
+        help='Número máximo de archivos a aceptar (default: 5000)'
     )
     
     parser.add_argument(
