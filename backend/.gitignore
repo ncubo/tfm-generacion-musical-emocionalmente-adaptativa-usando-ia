@@ -78,3 +78,6 @@ data/finetune_dataset/
 
 # Variables de entorno (puede contener claves sensibles, no subir al repositorio)
 .env
+
+# no subir resultados de benchmark (archivos generados)
+results/
