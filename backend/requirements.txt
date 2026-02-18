@@ -21,6 +21,9 @@ datasets>=2.0.0  # HuggingFace datasets para fine-tuning
 pandas>=2.0.0  # Procesamiento de CSV con labels
 tqdm>=4.65.0  # Progress bars para procesamiento batch
 
+# Dependencias para benchmark y análisis
+matplotlib>=3.5.0  # Generación de figuras (heatmaps, gráficos de barras)
+
 # Dependencias para API REST
 flask>=3.0.0
 flask-cors>=4.0.0
