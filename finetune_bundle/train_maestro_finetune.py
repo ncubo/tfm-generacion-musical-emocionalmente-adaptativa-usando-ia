@@ -176,7 +176,7 @@ def main():
     parser.add_argument('--output_dir', default='models/maestro_finetuned', help='Directorio de salida')
     
     # Hiperparámetros
-    parser.add_argument('--num_train_epochs', type=float, default=1.0)
+    parser.add_argument('--num_train_epochs', type=float, default=5.0)
     parser.add_argument('--max_steps', type=int, default=-1, help='Limitar steps (-1 = sin límite)')
     parser.add_argument('--learning_rate', type=float, default=5e-5)
     parser.add_argument('--per_device_train_batch_size', type=int, default=2)
@@ -204,6 +204,8 @@ def main():
     
     # Otros
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--resume_from_checkpoint', type=str, default=None,
+                       help='Path al checkpoint para reanudar (ej: models/maestro_finetuned/checkpoint-6000)')
     
     args = parser.parse_args()
     
@@ -355,7 +357,7 @@ def main():
     start = time.time()
     
     try:
-        train_result = trainer.train()
+        train_result = trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
         train_runtime = time.time() - start
         
         print("\n" + "=" * 80)

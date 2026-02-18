@@ -491,8 +491,8 @@ def main():
                        help='Fracción para train')
     parser.add_argument('--seed', type=int, default=42,
                        help='Semilla aleatoria')
-    parser.add_argument('--max_files', type=int, default=None,
-                       help='Máximo de archivos a procesar (para testing)')
+    parser.add_argument('--max_files', type=int, default=5000,
+                       help='Máximo archivos MIDI (5000 archivos ≈ 20,000+ ejemplos con windowing)')
     
     args = parser.parse_args()
     
