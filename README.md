@@ -50,7 +50,6 @@ El frontend estará disponible en `http://localhost:5173`
 - [Benchmark de Modelos](backend/BENCHMARK.md)
 - [Comparación Modelos](backend/COMPARACION_MODELOS.md)
 - [Evaluación de Rendimiento](backend/EVALUACION_RENDIMIENTO.md)
-- [Estabilización Temporal](backend/ESTABILIZACION_TEMPORAL.md)
 
 ## Tecnologías Principales
 

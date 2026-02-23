@@ -16,7 +16,7 @@ Instrumentación y benchmarking del pipeline de generación musical emocionalmen
 ```bash
 cd backend
 source .venv/bin/activate
-python src/app.py
+python -m src.app
 ```
 
 ### 2. Ejecutar benchmark

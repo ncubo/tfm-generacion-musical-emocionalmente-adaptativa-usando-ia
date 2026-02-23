@@ -14,7 +14,8 @@ pip install -r requirements.txt
 ### Ejecutar el servidor
 
 ```bash
-python backend/src/app.py
+cd backend
+python -m src.app
 ```
 
 El servidor se iniciará en `http://localhost:5000`

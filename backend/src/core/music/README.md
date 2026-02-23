@@ -22,13 +22,6 @@ python scripts/generate_baseline_from_webcam.py
 python scripts/generate_baseline_from_webcam.py --duration 15 --bars 16 --output mi_emocion.mid
 ```
 
-### Test rápido sin webcam
-
-```bash
-# Genera archivos MIDI para diferentes emociones
-python scripts/test_midi_generation.py
-```
-
 ### Uso programático
 
 ```python
@@ -91,8 +84,7 @@ backend/src/core/music/
 └── __init__.py
 
 backend/scripts/
-├── generate_baseline_from_webcam.py  # Demo con webcam
-└── test_midi_generation.py           # Test sin webcam
+└── generate_baseline_from_webcam.py  # Demo con webcam
 ```
 
 ### Modelos Usados
