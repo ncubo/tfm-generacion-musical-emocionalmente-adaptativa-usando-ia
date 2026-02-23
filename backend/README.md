@@ -90,17 +90,7 @@ python scripts/generate_baseline_from_webcam.py --duration 15 --bars 16 --output
 - `--output PATH`: Ruta del archivo MIDI de salida (valor por defecto: output/emotion.mid)
 - `--seed SEED`: Semilla aleatoria para garantizar reproducibilidad (opcional)
 
-### Demo 3: Test de Generación MIDI
-
-Genera archivos MIDI de prueba sin webcam:
-
-```bash
-python scripts/test_midi_generation.py
-```
-
-Este script genera archivos MIDI para las siguientes emociones: happy, sad, angry, fear, neutral, excited, calm. No requiere webcam y sirve para validar el funcionamiento del generador MIDI.
-
-### Demo 4: Comparación de Estabilidad Temporal
+### Demo 3: Comparación de Estabilidad Temporal
 
 Compara visualmente el sistema con y sin estabilización:
 
@@ -171,8 +161,6 @@ pipeline.stop()
 - `alpha`: Factor de suavizado EMA para V/A (menor = más suave)
 - `min_confidence`: Confianza mínima para aceptar cambios de emoción
 
-Ver [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md) para detalles técnicos.
-
 ### Generación MIDI
 
 ```python
@@ -209,8 +197,6 @@ print(f"MIDI generado: {output_path}")
 5. **Parámetros Musicales**: VA → tempo, modo, densidad, etc.
 6. **Generación MIDI**: Parámetros → archivo MIDI
 
-Ver detalles técnicos en [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md).
-
 ### Mapeo Emociones Básicas
 
 | Emoción | Valence | Arousal | Tempo | Modo |
@@ -243,9 +229,6 @@ core/
 - [BENCHMARK.md](BENCHMARK.md): Evaluación comparativa de motores
 - [COMPARACION_MODELOS.md](COMPARACION_MODELOS.md): Comparación pretrained vs finetuned
 - [EVALUACION_RENDIMIENTO.md](EVALUACION_RENDIMIENTO.md): Métricas de rendimiento
-
-### Sistema
-- [ESTABILIZACION_TEMPORAL.md](ESTABILIZACION_TEMPORAL.md): Estabilización temporal del reconocimiento emocional
 - [DOCUMENTACION_API.md](DOCUMENTACION_API.md): Documentación completa de la API REST
 
 ## Notas

@@ -21,7 +21,7 @@ python scripts/prepare_lakh_piano_subset.py \
     --max_files 2000 --seed 42
 ```
 
-Detección: Program 0-7 o "piano" en nombre. Merge a mono-track. Filtros: 10-300s, ≥100 notas, rango ≥12 semitonos.
+Detección: Program 0-7 o "piano" en nombre. Merge a mono-track. Filtros: 10-300s, ≥50 notas, rango ≥12 semitonos.
 
 ## 3. Análisis
 

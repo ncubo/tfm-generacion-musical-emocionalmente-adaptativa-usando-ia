@@ -24,15 +24,14 @@ def extract_midi_features(midi_path: str) -> Dict[str, float]:
     
     Returns:
         Diccionario con las siguientes features:
+        
+        Métricas principales (arousal):
             - note_density: Notas por segundo (float)
-            - pitch_range: Rango tonal (max_pitch - min_pitch) (int)
-            - mean_velocity: Velocity promedio (float)
-            - mean_note_duration: Duración promedio de nota en segundos (float)
-            - total_notes: Número total de notas (int)
+            - pitch_range: Rango tonal en semitonos (int)
+            - mean_velocity: Velocity promedio 0-127 (float)
+        
+        Métricas auxiliares (validación):
             - total_duration_seconds: Duración total en segundos (float)
-            - min_pitch: Nota más grave (int)
-            - max_pitch: Nota más aguda (int)
-            - unique_pitches: Número de notas únicas usadas (int)
     
     Raises:
         FileNotFoundError: Si el archivo MIDI no existe
@@ -116,15 +115,9 @@ def extract_midi_features(midi_path: str) -> Dict[str, float]:
         for dur in durations_ticks
     ]
     
-    # Calcular estadísticas
-    min_pitch = min(pitches)
-    max_pitch = max(pitches)
-    pitch_range = max_pitch - min_pitch
-    unique_pitches = len(set(pitches))
-    
+    # Calcular métricas principales
+    pitch_range = max(pitches) - min(pitches)
     mean_velocity = sum(velocities) / len(velocities)
-    mean_note_duration = sum(durations_seconds) / len(durations_seconds)
-    
     total_notes = len(notes)
     
     # Note density: notas por segundo
@@ -132,15 +125,13 @@ def extract_midi_features(midi_path: str) -> Dict[str, float]:
     
     # Retornar features
     return {
+        # Métricas principales (arousal)
         'note_density': round(note_density, 3),
         'pitch_range': pitch_range,
         'mean_velocity': round(mean_velocity, 2),
-        'mean_note_duration': round(mean_note_duration, 3),
-        'total_notes': total_notes,
-        'total_duration_seconds': round(total_duration_seconds, 2),
-        'min_pitch': min_pitch,
-        'max_pitch': max_pitch,
-        'unique_pitches': unique_pitches
+        
+        # Métrica auxiliar (validación)
+        'total_duration_seconds': round(total_duration_seconds, 2)
     }
 
 

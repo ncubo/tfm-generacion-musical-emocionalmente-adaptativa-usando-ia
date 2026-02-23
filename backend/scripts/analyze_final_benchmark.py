@@ -26,6 +26,7 @@ import matplotlib
 matplotlib.use('Agg')  # Backend sin GUI
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats
 
 # Configurar logger
 logging.basicConfig(
@@ -67,18 +68,12 @@ def load_benchmark_data(csv_path: Path) -> List[Dict]:
                     row['note_density'] = float(row['note_density'])
                     row['pitch_range'] = int(row['pitch_range'])
                     row['mean_velocity'] = float(row['mean_velocity'])
-                    row['mean_note_duration'] = float(row['mean_note_duration'])
-                    row['total_notes'] = int(row['total_notes'])
                     row['total_duration_seconds'] = float(row['total_duration_seconds'])
-                    row['unique_pitches'] = int(row['unique_pitches'])
                 else:
                     row['note_density'] = None
                     row['pitch_range'] = None
                     row['mean_velocity'] = None
-                    row['mean_note_duration'] = None
-                    row['total_notes'] = None
                     row['total_duration_seconds'] = None
-                    row['unique_pitches'] = None
                 
             except (ValueError, KeyError) as e:
                 logger.warning(f"Error parseando fila: {e} | {row}")
@@ -105,10 +100,7 @@ def aggregate_by_engine_va(data: List[Dict]) -> Dict[Tuple, Dict]:
         'note_density': [],
         'pitch_range': [],
         'mean_velocity': [],
-        'mean_note_duration': [],
-        'total_notes': [],
         'total_duration_seconds': [],
-        'unique_pitches': [],
         'generation_time_ms': []
     })
     
@@ -119,8 +111,8 @@ def aggregate_by_engine_va(data: List[Dict]) -> Dict[Tuple, Dict]:
         key = (row['engine'], row['valence'], row['arousal'])
         
         # Agregar valores (solo si no son None)
-        for metric in ['note_density', 'pitch_range', 'mean_velocity', 'mean_note_duration',
-                      'total_notes', 'total_duration_seconds', 'unique_pitches', 'generation_time_ms']:
+        for metric in ['note_density', 'pitch_range', 'mean_velocity',
+                      'total_duration_seconds', 'generation_time_ms']:
             value = row.get(metric)
             if value is not None:
                 groups[key][metric].append(value)
@@ -286,6 +278,47 @@ def generate_latex_table(aggregated: Dict, output_path: Path):
     logger.info(f"Tabla LaTeX guardada: {output_path}")
 
 
+def calculate_spearman_correlations(data: List[Dict]) -> Dict[str, Dict[str, Tuple[float, float]]]:
+    """
+    Calcula correlaciones de Spearman entre arousal y métricas por engine.
+    
+    Args:
+        data: Datos crudos del benchmark
+        
+    Returns:
+        Dict con estructura {engine: {metric: (rho, p_value)}}
+    """
+    correlations = {}
+    metrics = ['note_density', 'pitch_range', 'mean_velocity']
+    
+    # Filtrar solo datos exitosos
+    data_ok = [row for row in data if row['status'] == 'success']
+    
+    # Agrupar por engine
+    engines = set(row['engine'] for row in data_ok)
+    
+    for engine in engines:
+        engine_data = [row for row in data_ok if row['engine'] == engine]
+        
+        if len(engine_data) < 3:  # Necesitamos al menos 3 puntos para correlación
+            continue
+            
+        correlations[engine] = {}
+        
+        for metric in metrics:
+            # Extraer pares (arousal, metric)
+            pairs = [(row['arousal'], row[metric]) 
+                    for row in engine_data 
+                    if row.get(metric) is not None]
+            
+            if len(pairs) >= 3:
+                arousals, values = zip(*pairs)
+                rho, p_value = scipy.stats.spearmanr(arousals, values)
+                correlations[engine][metric] = (rho, p_value)
+    
+    return correlations
+
+
 def generate_summary_text(aggregated: Dict, data: List[Dict], output_path: Path):
     """
     Genera resumen de hallazgos en español.
@@ -298,6 +331,61 @@ def generate_summary_text(aggregated: Dict, data: List[Dict], output_path: Path)
     lines = []
     lines.append("=" * 80)
     lines.append("RESUMEN DE HALLAZGOS - BENCHMARK FINAL")
+    lines.append("=" * 80)
+    lines.append("")
+    
+    # 0. Correlaciones de Spearman (validación estadística)
+    lines.append("0. CORRELACIONES DE SPEARMAN (Arousal vs Métricas)")
+    lines.append("   " + "-" * 40)
+    
+    correlations = calculate_spearman_correlations(data)
+    
+    for engine in sorted(correlations.keys()):
+        lines.append(f"   {engine}:")
+        
+        for metric, (rho, p_value) in sorted(correlations[engine].items()):
+            # Formatear el nombre de la métrica
+            metric_display = metric.replace('_', ' ').title()
+            lines.append(f"     - {metric_display:20s}: rho = {rho:+.3f}  (p = {p_value:.3e})")
+            
+            # Interpretación y validación
+            if abs(rho) > 0.7:
+                strength = "FUERTE"
+            elif abs(rho) > 0.5:
+                strength = "MODERADA"
+            elif abs(rho) > 0.3:
+                strength = "DEBIL"
+            else:
+                strength = "MUY DEBIL"
+            
+            direction = "positiva" if rho > 0 else "negativa"
+            lines.append(f"       -> Correlacion {strength} {direction}")
+            
+            # Validación específica para modelo finetuned
+            if engine == 'transformer_finetuned' and metric == 'mean_velocity':
+                if abs(rho) >= 0.5:
+                    lines.append(f"       OK: |rho| >= 0.5 (criterio cumplido)")
+                else:
+                    lines.append(f"       FALLO: |rho| < 0.5 (revisar entrenamiento)")
+        
+        lines.append("")
+    
+    # Interpretación general
+    if 'transformer_finetuned' in correlations:
+        finetuned_corrs = correlations['transformer_finetuned']
+        strong_metrics = [m for m, (rho, _) in finetuned_corrs.items() if abs(rho) >= 0.5]
+        
+        if len(strong_metrics) >= 2:
+            lines.append(f"   RESUMEN: Finetuned tiene {len(strong_metrics)}/3 metricas con |rho| >= 0.5")
+            lines.append("   -> Condicionamiento VA funcional")
+        elif len(strong_metrics) == 1:
+            lines.append(f"   RESUMEN: Finetuned tiene {len(strong_metrics)}/3 metricas con |rho| >= 0.5")
+            lines.append("   -> Condicionamiento VA parcial")
+        else:
+            lines.append("   RESUMEN: Finetuned tiene 0/3 metricas con |rho| >= 0.5")
+            lines.append("   -> Condicionamiento VA insuficiente (revisar training)")
+    
+    lines.append("")
     lines.append("=" * 80)
     lines.append("")
     
@@ -327,11 +415,11 @@ def generate_summary_text(aggregated: Dict, data: List[Dict], output_path: Path)
                 
                 # Interpretación
                 if abs(corr) > 0.7:
-                    lines.append(f"     → Correlación FUERTE {'positiva' if corr > 0 else 'negativa'}")
+                    lines.append(f"     -> Correlacion FUERTE {'positiva' if corr > 0 else 'negativa'}")
                 elif abs(corr) > 0.4:
-                    lines.append(f"     → Correlación MODERADA {'positiva' if corr > 0 else 'negativa'}")
+                    lines.append(f"     -> Correlacion MODERADA {'positiva' if corr > 0 else 'negativa'}")
                 else:
-                    lines.append(f"     → Correlación DÉBIL")
+                    lines.append(f"     -> Correlacion DEBIL")
     
     lines.append("")
     
@@ -373,11 +461,11 @@ def generate_summary_text(aggregated: Dict, data: List[Dict], output_path: Path)
             lines.append(f"   - {engine}: std promedio velocity = {avg_std:.2f}")
             
             if avg_std < 5:
-                lines.append(f"     → MUY ESTABLE (variación <5 MIDI)")
+                lines.append(f"     -> MUY ESTABLE (variacion <5 MIDI)")
             elif avg_std < 10:
-                lines.append(f"     → ESTABLE (variación <10 MIDI)")
+                lines.append(f"     -> ESTABLE (variacion <10 MIDI)")
             else:
-                lines.append(f"     → VARIABILIDAD ALTA")
+                lines.append(f"     -> VARIABILIDAD ALTA")
     
     lines.append("")
     
@@ -426,11 +514,11 @@ def generate_summary_text(aggregated: Dict, data: List[Dict], output_path: Path)
         lines.append(f"   - Transformers density: {mean_trans:.2f} notas/s")
         
         if mean_trans > mean_base * 1.2:
-            lines.append(f"     → Transformers generan música MÁS DENSA (+{((mean_trans/mean_base - 1)*100):.1f}%)")
-        elif mean_trans < mean_base * 0.8:
-            lines.append(f"     → Transformers generan música MÁS ESPACIADA ({((mean_trans/mean_base - 1)*100):.1f}%)")
+            lines.append(f"     -> Transformers generan musica MAS DENSA (+{((mean_trans/mean_base - 1)*100):.1f}%)")
+        elif mean_trans / mean_base < 0.8:
+            lines.append(f"     -> Transformers generan musica MAS ESPACIADA ({((mean_trans/mean_base - 1)*100):.1f}%)")
         else:
-            lines.append(f"     → Densidades SIMILARES")
+            lines.append(f"     -> Densidades SIMILARES")
     
     lines.append("")
     

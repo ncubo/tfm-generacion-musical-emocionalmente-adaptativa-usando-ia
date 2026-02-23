@@ -5,7 +5,7 @@ Script de prueba para generación de MIDI con HF Maestro-REMI desde coordenadas 
 Este script permite generar archivos MIDI usando el modelo Hugging Face Maestro-REMI,
 condicionado indirectamente por valores manuales de Valencia-Activación.
 
-Modelo usado: https://huggingface.co/NathanFradet/Maestro-REMI-bpe20k
+Modelo usado: https://huggingface.co/Natooz/Maestro-REMI-bpe20k
 
 Uso:
     python backend/scripts/generate_transformer_from_va.py --v 0.7 --a 0.6 --out data/outputs/midis/happy_transformer.mid
