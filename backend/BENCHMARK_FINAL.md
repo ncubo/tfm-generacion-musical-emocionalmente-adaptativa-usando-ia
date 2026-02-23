@@ -15,15 +15,20 @@ Este benchmark evalúa los siguientes engines:
 - Grid VA: 4x4 puntos (valence × arousal) con valores `[-0.8, -0.2, +0.2, +0.8]`
 - Seeds reproducibles: Por defecto `[42, 43, 44]`
 - Total items: 3 engines × 16 puntos VA × 3 seeds = 144 MIDIs
-- Métricas extraídas:
-  - `note_density` - Notas por segundo
-  - `pitch_range` - Rango tonal (semitonos)
-  - `mean_velocity` - Velocity media (intensidad)
-  - `mean_note_duration` - Duración media de nota
-  - `total_notes` - Total de notas generadas
-  - `total_duration_seconds` - Duración total
-  - `unique_pitches` - Notas únicas usadas
-  - `generation_time_ms` - Latencia de generación
+
+### Métricas Computacionales
+
+**3 métricas principales** (proxy de arousal, defendibles sin teoría musical avanzada):
+
+| Métrica | Rango | Correlación | Justificación |
+|---------|-------|-------------|---------------|
+| `note_density` | 0.5-8 n/s | Arousal +0.7 | Frecuencia temporal de eventos MIDI |
+| `pitch_range` | 12-60 st | Arousal +0.6 | Dispersión espacial en registro MIDI |
+| `mean_velocity` | 40-100 | Arousal +0.8 | Intensidad dinámica (parámetro MIDI estándar) |
+
+**Métricas auxiliares** (validación técnica):
+- `total_duration_seconds` - Verificar longitud consistente (~60s)
+- `generation_time_ms` - Latencia de generación por motor
 
 ## Ejecución
 
@@ -100,11 +105,15 @@ En el mismo directorio:
   - Mean y std de cada métrica
   
 - `benchmark_table.tex` - Tablas LaTeX listas para copiar al documento
-  - Tabla 1: Métricas musicales (density, pitch_range, velocity)
+  - Tabla 1: Métricas de arousal (note_density, pitch_range, mean_velocity)
   - Tabla 2: Latencia de generación
   
 - `benchmark_summary.txt` - Resumen de hallazgos en español (8-12 bullets)
-  - Coherencia A→velocity, A→pitch_range
+  - **Sección 0: Correlaciones de Spearman** (validación estadística automática)
+    - Calcula ρ (rho) y p-value para cada métrica vs arousal por engine
+    - Verifica automáticamente si transformer_finetuned alcanza ρ > 0.5
+    - Interpretación: FUERTE (|ρ| > 0.7), MODERADA (|ρ| > 0.5), DÉBIL (|ρ| > 0.3)
+  - Coherencia A→velocity, A→pitch_range, A→density
   - Estabilidad entre seeds
   - Comparación pretrained vs finetuned
   - Comparación vs baseline
@@ -186,6 +195,86 @@ python scripts/analyze_final_benchmark.py results/final_benchmark_20260218_14300
 cat results/final_benchmark_20260218_143000/benchmark_summary.txt
 open results/final_benchmark_20260218_143000/*.png
 ```
+
+## Validación Estadística
+
+El script `analyze_final_benchmark.py` calcula **automáticamente** las correlaciones de Spearman entre arousal y métricas, añadiéndolas al inicio de `benchmark_summary.txt`.
+
+### Ejemplo de salida automática:
+
+```
+0. CORRELACIONES DE SPEARMAN (Arousal vs Métricas)
+   ----------------------------------------
+   transformer_finetuned:
+     - Mean Velocity       : rho = +0.782  (p = 1.234e-15)
+       -> Correlacion FUERTE positiva
+       OK: |rho| >= 0.5 (criterio cumplido)
+     - Note Density        : rho = +0.654  (p = 3.456e-10)
+       -> Correlacion MODERADA positiva
+     - Pitch Range         : rho = +0.589  (p = 2.789e-08)
+       -> Correlacion MODERADA positiva
+
+   RESUMEN: Finetuned tiene 2/3 metricas con |rho| >= 0.5
+   -> Condicionamiento VA funcional
+```
+
+### Interpretación de resultados:
+
+| Strength | |ρ| | Significado |
+|----------|-----|-------------|
+| **FUERTE** | > 0.7 | Condicionamiento alto |
+| **MODERADA** | 0.5 - 0.7 | Condicionamiento aceptable |
+| **DÉBIL** | 0.3 - 0.5 | Condicionamiento insuficiente |
+| **MUY DÉBIL** | < 0.3 | Sin condicionamiento efectivo |
+
+### ¿Cómo verificar si el modelo finetuned es válido?
+
+**Criterio de validación:** Al menos 1 métrica debe tener |ρ| ≥ 0.5
+
+1. Ejecutar benchmark completo:
+```bash
+python scripts/run_final_benchmark.py
+```
+
+2. Analizar resultados (calcula correlaciones automáticamente):
+```bash
+python scripts/analyze_final_benchmark.py results/final_benchmark_YYYYMMDD_HHMMSS
+```
+
+3. Revisar la **Sección 0** de `benchmark_summary.txt`:
+   - Si `transformer_finetuned` tiene >=1 metrica con |rho| >= 0.5 -> VALIDACION OK
+   - Si todas las metricas tienen |rho| < 0.5 -> Revisar entrenamiento
+
+### Validación manual (opcional):
+
+Si prefieres calcular manualmente las correlaciones:
+
+```python
+import pandas as pd
+import scipy.stats
+
+df = pd.read_csv('results/final_benchmark_YYYYMMDD/benchmark_raw.csv')
+df_ok = df[df['status'] == 'success']
+
+# Filtrar solo transformer_finetuned
+df_fine = df_ok[df_ok['engine'] == 'transformer_finetuned']
+
+# Correlaciones arousal vs métricas
+for metric in ['note_density', 'mean_velocity', 'pitch_range']:
+    rho, p = scipy.stats.spearmanr(df_fine['arousal'], df_fine[metric])
+    print(f"Arousal vs {metric}: ρ={rho:.3f}, p={p:.3e}")
+```
+
+**Valores esperados por engine:**
+- **Baseline:** ρ ~ 0.9-1.0 (heurístico determinista)
+- **Transformer pretrained:** ρ ~ 0.1-0.3 (no entrenado en VA)
+- **Transformer finetuned:** ρ > 0.5 (objetivo del fine-tuning)
+
+Si finetuned no alcanza ρ > 0.5 en ninguna métrica → revisar:
+- Número de epochs del fine-tuning
+- Tasa de aprendizaje (learning rate)
+- Calidad del dataset de entrenamiento
+- Función de pérdida utilizada
 
 ## Troubleshooting
 

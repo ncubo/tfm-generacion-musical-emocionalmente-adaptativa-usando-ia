@@ -179,8 +179,8 @@ def generate_single_midi(
         features = extract_midi_features(str(midi_path))
         
         logger.info(f"  Generado en {generation_time_ms:.0f}ms | "
-                   f"Notas: {features['total_notes']} | "
-                   f"Density: {features['note_density']:.2f} n/s")
+                   f"Density: {features['note_density']:.2f} n/s | "
+                   f"Velocity: {features['mean_velocity']:.1f}")
         
         return {
             "status": "success",
@@ -258,10 +258,7 @@ def run_benchmark(
         "note_density",
         "pitch_range",
         "mean_velocity",
-        "mean_note_duration",
-        "total_notes",
         "total_duration_seconds",
-        "unique_pitches",
         "midi_path",
         "error"
     ]
@@ -314,10 +311,7 @@ def run_benchmark(
                 row["note_density"] = metrics.get("note_density", "")
                 row["pitch_range"] = metrics.get("pitch_range", "")
                 row["mean_velocity"] = metrics.get("mean_velocity", "")
-                row["mean_note_duration"] = metrics.get("mean_note_duration", "")
-                row["total_notes"] = metrics.get("total_notes", "")
                 row["total_duration_seconds"] = metrics.get("total_duration_seconds", "")
-                row["unique_pitches"] = metrics.get("unique_pitches", "")
                 
                 results.append(row)
                 item_count += 1
@@ -398,9 +392,12 @@ def run_benchmark(
     logger.info(f"  - Saltados: {skipped_count}")
     
     if error_count > 0:
-        logger.warning(f"⚠️  {error_count} items fallaron. Revisar columna 'error' en CSV.")
+        logger.warning(f"  {error_count} items fallaron. Revisar columna 'error' en CSV.")
     
-    return csv_path, metadata
+    logger.info("=" * 60)
+    logger.info("Para analizar los resultados, ejecuta:")
+    logger.info(f"  python scripts/analyze_final_benchmark.py {output_dir}")
+    logger.info("=" * 60)
 
 
 def main():
@@ -506,7 +503,7 @@ Ejemplos:
     
     # Ejecutar benchmark
     try:
-        csv_path, metadata = run_benchmark(
+        run_benchmark(
             output_dir=output_dir,
             grid_type=args.grid,
             seeds=seeds,
