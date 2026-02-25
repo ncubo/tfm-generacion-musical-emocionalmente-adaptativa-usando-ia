@@ -58,8 +58,7 @@ def load_results_csv(csv_path: Path) -> List[Dict]:
             # Convertir campos numéricos
             for key in row:
                 if key in ['valence', 'arousal', 'seed', 'note_density', 'pitch_range',
-                          'mean_velocity', 'mean_note_duration', 'total_notes',
-                          'total_duration_seconds', 'min_pitch', 'max_pitch', 'unique_pitches']:
+                          'mean_velocity', 'total_duration_seconds', 'generation_time_ms']:
                     try:
                         row[key] = float(row[key])
                     except (ValueError, KeyError):
@@ -94,10 +93,13 @@ def aggregate_results(results: List[Dict]) -> List[Dict]:
         key = (result['model_tag'], result['valence'], result['arousal'])
         groups[key].append(result)
     
-    # Métricas a agregar
+    # Métricas a agregar (3 musicales + 2 de rendimiento)
     metrics = [
-        'note_density', 'pitch_range', 'mean_velocity', 'mean_note_duration',
-        'total_notes', 'total_duration_seconds', 'unique_pitches'
+        'note_density',           # Musical: densidad temporal
+        'pitch_range',            # Musical: rango tonal
+        'mean_velocity',          # Musical: dinámica
+        'total_duration_seconds', # Rendimiento: validación
+        'generation_time_ms'      # Rendimiento: eficiencia
     ]
     
     # Calcular estadísticas para cada grupo

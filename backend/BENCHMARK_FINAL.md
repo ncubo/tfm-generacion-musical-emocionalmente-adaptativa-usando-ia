@@ -13,12 +13,16 @@ Este benchmark evalúa los siguientes engines:
 ### Metodología
 
 - Grid VA: 4x4 puntos (valence × arousal) con valores `[-0.8, -0.2, +0.2, +0.8]`
-- Seeds reproducibles: Por defecto `[42, 43, 44]`
-- Total items: 3 engines × 16 puntos VA × 3 seeds = 144 MIDIs
+- Seeds reproducibles: Configurables (default: 3 seeds `[42, 43, 44]`)
+- Múltiples muestras: Cada combinación (engine, V, A) genera N MIDIs (1 por seed)
+- Total items: 3 engines × 16 puntos VA × N seeds
+  - Default (3 seeds): 144 MIDIs
+  - Con 5 seeds: 240 MIDIs
+- Validación de diversidad: Sistema detecta si diferentes seeds producen outputs idénticos
 
 ### Métricas Computacionales
 
-**3 métricas principales** (proxy de arousal, defendibles sin teoría musical avanzada):
+**Métricas musicales** (proxy de arousal, defendibles sin teoría musical avanzada):
 
 | Métrica | Rango | Correlación | Justificación |
 |---------|-------|-------------|---------------|
@@ -26,7 +30,7 @@ Este benchmark evalúa los siguientes engines:
 | `pitch_range` | 12-60 st | Arousal +0.6 | Dispersión espacial en registro MIDI |
 | `mean_velocity` | 40-100 | Arousal +0.8 | Intensidad dinámica (parámetro MIDI estándar) |
 
-**Métricas auxiliares** (validación técnica):
+**Métricas de rendimiento** (validación y eficiencia):
 - `total_duration_seconds` - Verificar longitud consistente (~60s)
 - `generation_time_ms` - Latencia de generación por motor
 
@@ -41,35 +45,51 @@ source .venv/bin/activate
 
 ### 2. Ejecutar benchmark (generación)
 
-Benchmark completo (144 MIDIs, aproximadamente 20-40 minutos dependiendo del hardware):
+**Benchmark completo** (144 MIDIs, ~20-40 min):
 ```bash
 python scripts/run_final_benchmark.py
 ```
 
-Benchmark rápido (3x3 grid, 1 seed = 27 MIDIs):
+**Con 5 seeds** (240 MIDIs, ~40-80 min):
+```bash
+python scripts/run_final_benchmark.py --num_seeds 5
+```
+
+**Seeds específicas**:
+```bash
+python scripts/run_final_benchmark.py --seeds "0,1,2,3,4"
+```
+
+**Benchmark rápido** (3x3 grid, 1 seed = 27 MIDIs):
 ```bash
 python scripts/run_final_benchmark.py --grid 3x3 --seeds "42"
 ```
 
-Prueba rápida (solo 10 MIDIs):
+**Solo baseline con múltiples seeds**:
+```bash
+python scripts/run_final_benchmark.py --engines baseline --num_seeds 5
+```
+
+**Prueba rápida** (solo 10 MIDIs):
 ```bash
 python scripts/run_final_benchmark.py --max_items 10
 ```
 
-Benchmark solo baseline (para debugging):
-```bash
-python scripts/run_final_benchmark.py --engines baseline --max_items 5
-```
-
-No regenerar MIDIs existentes:
+**No regenerar MIDIs existentes**:
 ```bash
 python scripts/run_final_benchmark.py --skip_existing
 ```
 
-Forzar CPU (si hay problemas con CUDA):
+**Forzar CPU** (si hay problemas con CUDA):
 ```bash
 python scripts/run_final_benchmark.py --device cpu
 ```
+
+**Evaluar escalabilidad** (múltiples longitudes, ej: 4, 8, 16 compases):
+```bash
+python scripts/run_final_benchmark.py --bars_list "4,8,16" --num_seeds 2
+```
+Este comando genera 3 engines × 16 VA × 2 seeds × 3 bars = 288 MIDIs para analizar latencia vs longitud.
 
 ### 3. Analizar resultados
 
@@ -104,6 +124,11 @@ En el mismo directorio:
 - `benchmark_aggregated.csv` - Estadísticas agregadas por (engine, V, A)
   - Mean y std de cada métrica
   
+- `benchmark_bars_aggregated.csv` - Estadísticas de escalabilidad por (engine, bars)
+  - Solo presente si se usó `--bars_list` con múltiples longitudes
+  - Columnas: engine, bars, mean_ms, median_ms, stdev_ms, p95_ms, success_rate, total_count, success_count
+  - Permite analizar cómo escala la latencia con la longitud de generación
+  
 - `benchmark_table.tex` - Tablas LaTeX listas para copiar al documento
   - Tabla 1: Métricas de arousal (note_density, pitch_range, mean_velocity)
   - Tabla 2: Latencia de generación
@@ -137,19 +162,59 @@ python scripts/run_final_benchmark.py [opciones]
 Opciones:
   --output_dir DIR      Directorio de salida personalizado
   --grid {4x4,3x3}      Tamaño del grid VA (default: 4x4)
-  --seeds "S1,S2,S3"    Seeds separadas por comas (default: "42,43,44")
+  --seeds "S1,S2,S3"    Seeds separadas por comas (ej: "42,43,44")
+  --num_seeds N         Número de seeds consecutivas 0..N-1 (ej: --num_seeds 5)
+                        Incompatible con --seeds
+  --bars_list "B1,B2"   Longitudes en bars separadas por comas (ej: "4,8,16")
+                        Default: "8". Permite evaluar escalabilidad de latencia
   --engines "E1,E2"     Engines a evaluar (default: todos)
                         Opciones: baseline, transformer_pretrained, transformer_finetuned
   --max_items N         Límite de items (para pruebas)
   --skip_existing       No regenerar MIDIs existentes
   --device {cpu,cuda}   Device para transformers (default: auto)
   -h, --help            Mostrar ayuda completa
+
+Default: 3 seeds [42,43,44] si no se especifica --seeds ni --num_seeds
+Default: 1 longitud [8 bars] si no se especifica --bars_list
 ```
 
 ### `analyze_final_benchmark.py`
 
 ```bash
 python scripts/analyze_final_benchmark.py <results_dir>
+```
+
+## Análisis Extendido (Métricas Compuestas)
+
+Tras ejecutar el benchmark, se pueden calcular métricas adicionales:
+
+### System Coherence Score
+```bash
+python scripts/calculate_system_coherence.py \
+  --benchmark_results results/final_benchmark_YYYYMMDD_HHMMSS
+```
+
+### Dimensional Alignment (VA target vs estimated)
+```bash
+python scripts/evaluate_dimensional_alignment.py \
+  --benchmark_results results/final_benchmark_YYYYMMDD_HHMMSS
+```
+
+### Dataset vs Generated Comparison
+```bash
+python scripts/compare_dataset_vs_generated.py \
+  --dataset_dir data/lakh_piano_clean \
+  --generated_dir results/final_benchmark_YYYYMMDD_HHMMSS/baseline
+```
+
+Ver [METRICAS_IMPLEMENTADAS.md](METRICAS_IMPLEMENTADAS.md) para documentación completa.
+
+## Opciones Avanzadas
+
+### `run_final_benchmark.py`
+
+```bash
+python scripts/run_final_benchmark.py [opciones]
 
 Argumentos:
   results_dir           Directorio con benchmark_raw.csv
@@ -195,6 +260,83 @@ python scripts/analyze_final_benchmark.py results/final_benchmark_20260218_14300
 cat results/final_benchmark_20260218_143000/benchmark_summary.txt
 open results/final_benchmark_20260218_143000/*.png
 ```
+
+## Reproducibilidad y Seeds
+
+### Cómo Funcionan las Seeds
+
+Cada engine implementa control de aleatoriedad mediante seeds:
+
+| Engine | Implementación | Determinismo |
+|--------|---------------|--------------|
+| **baseline** | `random.Random(seed)` | ✅ Determinista completo |
+| **transformer_pretrained** | `torch.manual_seed(seed)` | ✅ Determinista (CPU/CUDA) |
+| **transformer_finetuned** | `torch.manual_seed(seed)` | ✅ Determinista (CPU/CUDA) |
+
+**Verificado en código:**
+- `src/core/music/engines/baseline.py:220` - usa Random(seed)
+- `src/core/music/engines/hf_maestro_remi.py:516` - usa torch.manual_seed()
+
+### Múltiples Muestras por Combinación VA
+
+Para análisis estadístico robusto, se recomienda generar **3-5 muestras** por cada (engine, V, A):
+
+**Ventajas:**
+- Permite calcular varianza y desviación estándar
+- Detecta si el engine tiene capacidad de diversidad
+- Mejora la validación de correlaciones Spearman
+
+**Ejemplo:**
+```bash
+# Grid 4x4 con 5 seeds = 240 MIDIs (16 puntos × 3 engines × 5 seeds)
+python scripts/run_final_benchmark.py --num_seeds 5
+```
+
+**CSV resultante:**
+```csv
+engine,valence,arousal,seed,note_density,mean_velocity,...
+baseline,-0.8,-0.8,0,0.403,53.44,...
+baseline,-0.8,-0.8,1,0.505,55.12,...
+baseline,-0.8,-0.8,2,0.381,52.88,...
+baseline,-0.8,-0.8,3,0.442,54.03,...
+baseline,-0.8,-0.8,4,0.397,53.01,...
+transformer_pretrained,-0.8,-0.8,0,2.145,68.34,...
+transformer_pretrained,-0.8,-0.8,1,1.983,66.21,...
+...
+```
+
+### Validación de Diversidad
+
+El benchmark detecta automáticamente si diferentes seeds producen outputs **idénticos o muy similares**:
+
+```
+⚠️  Posible falta de diversidad: baseline V=-0.8 A=-0.8 | 
+    note_density seed 0=0.403 vs seed 4=0.403
+```
+
+**Cuando aparece este warning:**
+- Seeds pueden no estar aplicándose correctamente
+- Engine puede ser demasiado determinista (parámetros fijos dominan)
+- Verificar implementación de seed en el código del engine
+
+**Comportamiento esperado:**
+- **baseline:** Pequeñas variaciones (random walk de notas, ≈5-10% diferencia)
+- **transformers:** Variaciones significativas (sampling estocástico, ≈20-40% diferencia)
+
+### Reproducibilidad Exacta
+
+Para reproducir resultados exactos de un benchmark anterior:
+
+```bash
+# Mismo timestamp, misma configuración
+python scripts/run_final_benchmark.py \
+  --output_dir results/final_benchmark_20260218_143000 \
+  --grid 4x4 \
+  --seeds "42,43,44" \
+  --skip_existing
+```
+
+Con las mismas seeds, modelos y configuración grid, todos los MIDIs generados serán **bit-identical**.
 
 ## Validación Estadística
 
@@ -306,13 +448,104 @@ Usa grid más pequeño o menos seeds:
 python scripts/run_final_benchmark.py --grid 3x3 --seeds "42"
 ```
 
+### Warning: "Posible falta de diversidad"
+
+Si ves warnings sobre baja diversidad entre seeds:
+
+```
+⚠️  Posible falta de diversidad: baseline V=-0.8 A=-0.8
+```
+
+**Causas comunes:**
+- Engine muy determinista (normal en baseline con parámetros fijos)
+- Transformers: verificar que seed se aplica correctamente
+
+**Solución:**
+- Para baseline: esperado, ignorar warning
+- Para transformers: verificar logs de generación (debe mostrar "Semilla configurada: X")
+
+### Seeds no generan outputs diferentes
+
+Si diferentes seeds producen MIDIs idénticos en transformers:
+
+1. Verificar que torch está instalado correctamente:
+```bash
+python -c "import torch; print(torch.manual_seed(42))"
+```
+
+2. Ejecutar con logging DEBUG:
+```bash
+python scripts/run_final_benchmark.py --seeds "0,1" 2>&1 | grep -i seed
+```
+
+Debe mostrar: `[INFO] Semilla configurada: 0` y `[INFO] Semilla configurada: 1`
+
+## Evaluación de Escalabilidad
+
+El parámetro `--bars_list` permite evaluar cómo escala la latencia de generación con la longitud de la música.
+
+### Ejemplo de uso
+
+```bash
+# Evaluar 3 longitudes (4, 8, 16 compases) con 2 seeds
+python scripts/run_final_benchmark.py --bars_list "4,8,16" --num_seeds 2
+```
+
+**Total de MIDIs:** 3 engines × 16 VA × 2 seeds × 3 bars = 288 MIDIs
+
+### Análisis de resultados
+
+El análisis genera `benchmark_bars_aggregated.csv` con las siguientes columnas:
+
+| Columna | Descripción |
+|---------|-------------|
+| `engine` | Motor evaluado |
+| `bars` | Longitud en compases |
+| `mean_ms` | Latencia promedio (ms) |
+| `median_ms` | Latencia mediana (ms) |
+| `stdev_ms` | Desviación estándar (ms) |
+| `p95_ms` | Percentil 95 de latencia (ms) |
+| `success_rate` | % de generaciones exitosas |
+| `total_count` | Total de intentos |
+| `success_count` | Generaciones exitosas |
+
+### Interpretación
+
+- **Escalabilidad lineal:** `latency ∝ bars` → óptimo
+- **Escalabilidad cuadrática:** `latency ∝ bars²` → posible cuello de botella
+- **P95 vs Mean:** Si `p95 >> mean`, hay alta variabilidad (posibles outliers)
+- **Success rate < 100%:** Indica fallos en generaciones más largas
+
+### Uso típico
+
+1. **Benchmark completo de escalabilidad:**
+   ```bash
+   python scripts/run_final_benchmark.py \
+     --bars_list "4,8,12,16" \
+     --num_seeds 5 \
+     --grid 3x3
+   ```
+   Total: 3 × 9 × 5 × 4 = 540 MIDIs
+
+2. **Análisis de resultados:**
+   ```bash
+   python scripts/analyze_final_benchmark.py results/final_benchmark_YYYYMMDD_HHMMSS
+   ```
+
+3. **Inspeccionar CSV:**
+   ```bash
+   cat results/final_benchmark_YYYYMMDD_HHMMSS/benchmark_bars_aggregated.csv
+   ```
+
 ## Notas
 
-- Reproducibilidad: Con las mismas seeds, el benchmark genera MIDIs idénticos
-- Cache de modelos: Los transformers se cargan una sola vez y se reutilizan
-- Manejo de errores: Si un MIDI falla, se registra el error y continúa con el siguiente
-- Skip existing: Útil para reanudar benchmarks interrumpidos sin regenerar todo
-- Paralelización: Actualmente secuencial (posible mejora futura: batch generation)
+- **Reproducibilidad:** Con las mismas seeds, grid y engines, el benchmark genera MIDIs bit-identical
+- **Múltiples muestras:** Use 3-5 seeds para análisis estadístico robusto (permite calcular varianza)
+- **Cache de modelos:** Los transformers se cargan una sola vez y se reutilizan (optimización de memoria)
+- **Manejo de errores:** Si un MIDI falla, se registra el error en CSV y continúa con el siguiente
+- **Skip existing:** Útil para reanudar benchmarks interrumpidos sin regenerar todo
+- **Validación automática:** Sistema detecta si seeds no producen diversidad suficiente
+- **Paralelización:** Actualmente secuencial (posible mejora futura: batch generation)
 
 ## Referencias
 

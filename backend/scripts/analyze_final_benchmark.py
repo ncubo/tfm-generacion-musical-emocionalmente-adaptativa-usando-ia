@@ -63,6 +63,10 @@ def load_benchmark_data(csv_path: Path) -> List[Dict]:
                 row['seed'] = int(row['seed'])
                 row['generation_time_ms'] = float(row['generation_time_ms']) if row['generation_time_ms'] else 0
                 
+                # Parsear bars si existe (para benchmarks con escalabilidad)
+                if 'bars' in row and row['bars']:
+                    row['bars'] = int(row['bars'])
+                
                 # Métricas musicales (pueden estar vacías si hubo error)
                 if row['note_density']:
                     row['note_density'] = float(row['note_density'])
@@ -135,6 +139,75 @@ def aggregate_by_engine_va(data: List[Dict]) -> Dict[Tuple, Dict]:
     return aggregated
 
 
+def aggregate_by_engine_bars(data: List[Dict]) -> Dict[Tuple, Dict]:
+    """
+    Agrega datos por (engine, length_bars) para análisis de escalabilidad.
+    
+    Calcula:
+    - mean, median, stdev, p95 de generation_time_ms
+    - success_rate (% de generaciones exitosas)
+    
+    Args:
+        data: Lista de filas del benchmark
+        
+    Returns:
+        Dict con key=(engine, bars) y value=dict con stats
+    """
+    # Agrupar datos
+    groups = defaultdict(lambda: {
+        'generation_time_ms': [],
+        'total_count': 0,
+        'success_count': 0
+    })
+    
+    for row in data:
+        # Verificar si existe bars en el row
+        if 'bars' not in row:
+            continue
+        
+        try:
+            length_bars = int(row['bars'])
+        except (ValueError, KeyError):
+            continue
+        
+        key = (row['engine'], length_bars)
+        groups[key]['total_count'] += 1
+        
+        if row['status'] == 'success':
+            groups[key]['success_count'] += 1
+            gen_time = row.get('generation_time_ms')
+            if gen_time is not None and gen_time > 0:
+                groups[key]['generation_time_ms'].append(gen_time)
+    
+    # Calcular estadísticas
+    aggregated = {}
+    for key, metrics in groups.items():
+        times = metrics['generation_time_ms']
+        total = metrics['total_count']
+        success = metrics['success_count']
+        
+        stats = {}
+        if times:
+            stats['mean_ms'] = statistics.mean(times)
+            stats['median_ms'] = statistics.median(times)
+            stats['stdev_ms'] = statistics.stdev(times) if len(times) > 1 else 0.0
+            stats['p95_ms'] = np.percentile(times, 95)
+        else:
+            stats['mean_ms'] = None
+            stats['median_ms'] = None
+            stats['stdev_ms'] = None
+            stats['p95_ms'] = None
+        
+        stats['success_rate'] = (success / total * 100) if total > 0 else 0.0
+        stats['total_count'] = total
+        stats['success_count'] = success
+        
+        aggregated[key] = stats
+    
+    logger.info(f"Datos agregados por bars: {len(aggregated)} grupos (engine, bars)")
+    return aggregated
+
+
 def save_aggregated_csv(aggregated: Dict, output_path: Path):
     """
     Guarda CSV con datos agregados.
@@ -168,6 +241,40 @@ def save_aggregated_csv(aggregated: Dict, output_path: Path):
         logger.info(f"CSV agregado guardado: {output_path} ({len(rows)} filas)")
     else:
         logger.warning("No hay datos agregados para guardar")
+
+
+def save_bars_aggregated_csv(aggregated: Dict, output_path: Path):
+    """
+    Guarda CSV con datos agregados por (engine, bars).
+    
+    Args:
+        aggregated: Dict con stats agregadas por (engine, bars)
+        output_path: Path al CSV de salida
+    """
+    # Preparar filas
+    rows = []
+    for (engine, bars), stats in aggregated.items():
+        row = {
+            'engine': engine,
+            'bars': bars
+        }
+        row.update(stats)
+        rows.append(row)
+    
+    # Ordenar por engine, bars
+    rows.sort(key=lambda r: (r['engine'], r['bars']))
+    
+    # Escribir CSV
+    if rows:
+        fieldnames = list(rows[0].keys())
+        with open(output_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        
+        logger.info(f"CSV agregado por bars guardado: {output_path} ({len(rows)} filas)")
+    else:
+        logger.warning("No hay datos agregados por bars para guardar")
 
 
 def generate_latex_table(aggregated: Dict, output_path: Path):
@@ -598,8 +705,13 @@ def generate_heatmaps(aggregated: Dict, output_dir: Path):
     valences = sorted(set(k[1] for k in aggregated.keys()))
     arousals = sorted(set(k[2] for k in aggregated.keys()))
     
-    # Engines transformer solamente
-    transformer_engines = ['transformer_pretrained', 'transformer_finetuned']
+    # Engines que existen en los datos (excluir baseline)
+    all_engines = sorted(set(k[0] for k in aggregated.keys()))
+    transformer_engines = [e for e in all_engines if e != 'baseline']
+    
+    if not transformer_engines:
+        logger.info("No hay engines transformer en los datos, skipping heatmaps")
+        return
     
     # Métricas a graficar
     metrics = [
@@ -758,6 +870,14 @@ def analyze_benchmark(results_dir: Path):
     agg_csv_path = results_dir / "benchmark_aggregated.csv"
     save_aggregated_csv(aggregated, agg_csv_path)
     
+    # 3b. Agregar datos por (engine, bars) para escalabilidad
+    aggregated_bars = aggregate_by_engine_bars(data)
+    if aggregated_bars:
+        bars_csv_path = results_dir / "benchmark_bars_aggregated.csv"
+        save_bars_aggregated_csv(aggregated_bars, bars_csv_path)
+    else:
+        logger.info("No se encontraron datos con length_bars (benchmark antiguo sin escalabilidad)")
+    
     # 4. Generar tabla LaTeX
     latex_path = results_dir / "benchmark_table.tex"
     generate_latex_table(aggregated, latex_path)
@@ -777,6 +897,7 @@ def analyze_benchmark(results_dir: Path):
     logger.info("=" * 60)
     logger.info(f"Archivos generados en: {results_dir}")
     logger.info("  - benchmark_aggregated.csv")
+    logger.info("  - benchmark_bars_aggregated.csv (si hay datos con length_bars)")
     logger.info("  - benchmark_table.tex")
     logger.info("  - benchmark_summary.txt")
     logger.info("  - heatmap_velocity_transformer_pretrained.png")

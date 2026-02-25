@@ -23,15 +23,18 @@ def extract_midi_features(midi_path: str) -> Dict[str, float]:
         midi_path: Ruta al archivo MIDI a analizar
     
     Returns:
-        Diccionario con las siguientes features:
+        Diccionario con las siguientes 4 métricas:
         
-        Métricas principales (arousal):
+        Métricas musicales (proxy de arousal):
             - note_density: Notas por segundo (float)
             - pitch_range: Rango tonal en semitonos (int)
-            - mean_velocity: Velocity promedio 0-127 (float)
+            - mean_velocity: Intensidad dinámica MIDI 0-127 (float)
         
-        Métricas auxiliares (validación):
+        Métricas de rendimiento (validación):
             - total_duration_seconds: Duración total en segundos (float)
+        
+        Nota: generation_time_ms se mide en los scripts de benchmark,
+        no se calcula en esta función porque depende del contexto de ejecución.
     
     Raises:
         FileNotFoundError: Si el archivo MIDI no existe
@@ -118,19 +121,19 @@ def extract_midi_features(midi_path: str) -> Dict[str, float]:
     # Calcular métricas principales
     pitch_range = max(pitches) - min(pitches)
     mean_velocity = sum(velocities) / len(velocities)
-    total_notes = len(notes)
     
     # Note density: notas por segundo
-    note_density = total_notes / total_duration_seconds if total_duration_seconds > 0 else 0
+    note_density = len(notes) / total_duration_seconds if total_duration_seconds > 0 else 0
     
-    # Retornar features
+    # Retornar 4 métricas (3 musicales + 1 de rendimiento)
+    # generation_time_ms se mide en los scripts, no aquí
     return {
-        # Métricas principales (arousal)
+        # Métricas musicales (proxies de arousal)
         'note_density': round(note_density, 3),
         'pitch_range': pitch_range,
         'mean_velocity': round(mean_velocity, 2),
         
-        # Métrica auxiliar (validación)
+        # Métrica de rendimiento (validación)
         'total_duration_seconds': round(total_duration_seconds, 2)
     }
 
