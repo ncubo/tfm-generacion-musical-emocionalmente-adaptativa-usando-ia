@@ -47,6 +47,7 @@ El frontend estará disponible en `http://localhost:5173`
 - [Dataset Fine-tuning](backend/DATASET_FINETUNING.md)
 
 ### Evaluación y Benchmarks
+- [Métricas Implementadas](backend/METRICAS_IMPLEMENTADAS.md)
 - [Benchmark de Modelos](backend/BENCHMARK.md)
 - [Comparación Modelos](backend/COMPARACION_MODELOS.md)
 - [Evaluación de Rendimiento](backend/EVALUACION_RENDIMIENTO.md)
