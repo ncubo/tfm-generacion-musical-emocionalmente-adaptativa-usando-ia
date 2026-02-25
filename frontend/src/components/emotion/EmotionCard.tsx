@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiClient } from '../../api/client';
 import type { EmotionResponse } from '../../types';
 import { normalizeEmotionToPercentage } from '../../utils/constants';
+import { translateEmotion } from '../../utils/emotionTranslation';
 
 export function EmotionCard() {
   const [emotion, setEmotion] = useState<EmotionResponse | null>(null);
@@ -39,7 +40,9 @@ export function EmotionCard() {
         <div className="mt-4 space-y-3">
           <div className="p-4 bg-purple-50 border border-purple-200 rounded">
             <p className="text-sm text-gray-600">Emoción:</p>
-            <p className="text-xl font-bold text-purple-800 capitalize">{emotion.emotion}</p>
+            <p className="text-xl font-bold text-purple-800 capitalize">
+              {translateEmotion(emotion.emotion)}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

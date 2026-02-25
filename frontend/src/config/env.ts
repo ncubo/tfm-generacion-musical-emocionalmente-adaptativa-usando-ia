@@ -16,9 +16,7 @@ function getEnvVar(key: string, defaultValue?: string): string {
 export const ENV = {
   // En desarrollo: backend separado en :5000
   // En producción: usar ruta relativa (servido desde mismo origen)
-  API_BASE_URL: import.meta.env.DEV 
-    ? getEnvVar('VITE_API_BASE_URL', 'http://localhost:5000')
-    : '',
+  API_BASE_URL: import.meta.env.DEV ? getEnvVar('VITE_API_BASE_URL', 'http://localhost:5000') : '',
   DEV: import.meta.env.DEV,
   PROD: import.meta.env.PROD,
 } as const;
