@@ -20,18 +20,18 @@ interface RealtimeEmotionState {
 
 /**
  * Hook para análisis emocional en tiempo real desde webcam.
- * 
+ *
  * Implementa un sistema de polling que:
  * - Captura snapshots periódicos del video
  * - Los envía al backend para inferencia
  * - Evita concurrencia (no envía si hay request en vuelo)
  * - Gestiona errores de forma robusta
- * 
+ *
  * ¿Por qué polling y no streaming?
  * - Simplicidad: no requiere WebSockets ni infraestructura compleja
  * - Control: fácil ajustar frecuencia según rendimiento
  * - Compatibilidad: funciona con cualquier backend HTTP estándar
- * 
+ *
  * ¿Por qué evitar concurrencia?
  * - Previene saturación del backend con requests acumuladas
  * - Mantiene orden temporal de las emociones detectadas
@@ -62,7 +62,7 @@ export function useRealtimeEmotion({
    * Reutiliza la misma lógica del componente WebcamView.
    */
   const captureSnapshotBlob = useCallback((): Promise<Blob | null> => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
 
@@ -97,7 +97,7 @@ export function useRealtimeEmotion({
 
       // Convertir a Blob
       canvas.toBlob(
-        (blob) => {
+        blob => {
           resolve(blob);
         },
         'image/jpeg',
@@ -142,7 +142,6 @@ export function useRealtimeEmotion({
         isAnalyzing: false,
         error: null,
       }));
-
     } catch (err) {
       console.error('[Realtime] Error al procesar frame:', err);
       setState(prev => ({

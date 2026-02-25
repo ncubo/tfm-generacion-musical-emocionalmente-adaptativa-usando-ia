@@ -1,4 +1,5 @@
 import type { EmotionFromFrameResponse } from '../../types';
+import { translateEmotion } from '../../utils/emotionTranslation';
 
 interface ManualCaptureProps {
   snapshotBlob: Blob | null;
@@ -66,9 +67,7 @@ export function ManualCapture({
       ) : (
         <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded">
           <p className="text-gray-600 font-semibold">No hay imagen capturada</p>
-          <p className="text-sm text-gray-500">
-            Haz clic en "Capturar imagen" para tomar una foto
-          </p>
+          <p className="text-sm text-gray-500">Haz clic en "Capturar imagen" para tomar una foto</p>
         </div>
       )}
 
@@ -96,7 +95,7 @@ export function ManualCapture({
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Emoción:</span>
                 <span className="text-lg font-bold text-purple-800 capitalize">
-                  {emotionResult.emotion}
+                  {translateEmotion(emotionResult.emotion)}
                 </span>
               </div>
 
