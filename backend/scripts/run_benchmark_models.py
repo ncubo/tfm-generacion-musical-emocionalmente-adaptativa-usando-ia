@@ -248,8 +248,8 @@ def run_benchmark(
                         # Extraer features
                         features = extract_midi_features(generated_path)
                         
-                        logger.debug(f"  Características extraídas: {features['total_notes']} notas, "
-                                   f"{features['note_density']:.2f} notas/s")
+                        logger.debug(f"  Características extraídas: density={features['note_density']:.2f} n/s, "
+                                   f"range={features['pitch_range']} st")
                         
                         # Construir resultado
                         result = {

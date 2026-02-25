@@ -48,20 +48,20 @@ ENGINES_CONFIG = {
     "baseline": {
         "name": "Baseline (heurístico)",
         "repo": "N/A (rule-based)",
-        "generate_fn": lambda params, path, seed: generate_midi_baseline(
+        "generate_fn": lambda params, path, seed, bars: generate_midi_baseline(
             params=params,
             out_path=path,
-            length_bars=8,
+            length_bars=bars,
             seed=seed
         )
     },
     "transformer_pretrained": {
         "name": "Transformer Pretrained",
         "repo": "Natooz/Maestro-REMI-bpe20k",
-        "generate_fn": lambda params, path, seed: generate_midi_hf_maestro_remi(
+        "generate_fn": lambda params, path, seed, bars: generate_midi_hf_maestro_remi(
             params=params,
             out_path=path,
-            length_bars=8,
+            length_bars=bars,
             seed=seed,
             model_source="pretrained",
             model_id_or_path="Natooz/Maestro-REMI-bpe20k"
@@ -70,10 +70,10 @@ ENGINES_CONFIG = {
     "transformer_finetuned": {
         "name": "Transformer Finetuned VA",
         "repo": "mmayorga/maestro-remi-finetuned-va",
-        "generate_fn": lambda params, path, seed: generate_midi_hf_maestro_remi(
+        "generate_fn": lambda params, path, seed, bars: generate_midi_hf_maestro_remi(
             params=params,
             out_path=path,
-            length_bars=8,
+            length_bars=bars,
             seed=seed,
             model_source="pretrained",
             model_id_or_path="mmayorga/maestro-remi-finetuned-va"
@@ -111,6 +111,7 @@ def generate_single_midi(
     valence: float,
     arousal: float,
     seed: int,
+    length_bars: int,
     output_dir: Path,
     skip_existing: bool = False
 ) -> Dict[str, Any]:
@@ -122,6 +123,7 @@ def generate_single_midi(
         valence: Valor de valencia [-1, 1]
         arousal: Valor de arousal [-1, 1]
         seed: Semilla aleatoria
+        length_bars: Número de compases a generar
         output_dir: Directorio base de resultados
         skip_existing: Si True, no regenera si el archivo ya existe
         
@@ -131,7 +133,7 @@ def generate_single_midi(
     # Crear path del MIDI
     engine_dir = output_dir / engine_name / f"v{valence:+.1f}_a{arousal:+.1f}"
     engine_dir.mkdir(parents=True, exist_ok=True)
-    midi_path = engine_dir / f"seed{seed}.mid"
+    midi_path = engine_dir / f"seed{seed}_bars{length_bars}.mid"
     
     # Verificar si ya existe
     if skip_existing and midi_path.exists():
@@ -167,10 +169,10 @@ def generate_single_midi(
         params = va_to_music_params(valence, arousal)
         
         # Generar MIDI
-        logger.info(f"Generando: {engine_name} | V={valence:+.1f} A={arousal:+.1f} | seed={seed}")
+        logger.info(f"Generando: {engine_name} | V={valence:+.1f} A={arousal:+.1f} | seed={seed} | bars={length_bars}")
         
         start_time = time.perf_counter()
-        engine_config["generate_fn"](params, str(midi_path), seed)
+        engine_config["generate_fn"](params, str(midi_path), seed, length_bars)
         end_time = time.perf_counter()
         
         generation_time_ms = (end_time - start_time) * 1000
@@ -208,9 +210,11 @@ def run_benchmark(
     output_dir: Path,
     grid_type: str = "4x4",
     seeds: List[int] = [42, 43, 44],
+    bars_list: List[int] = [8],
     engines: List[str] = None,
     skip_existing: bool = False,
-    max_items: Optional[int] = None
+    max_items: Optional[int] = None,
+    validate_seed_diversity: bool = True
 ) -> Tuple[Path, Dict[str, Any]]:
     """
     Ejecuta el benchmark completo.
@@ -219,9 +223,11 @@ def run_benchmark(
         output_dir: Directorio de salida
         grid_type: "4x4" o "3x3"
         seeds: Lista de semillas
+        bars_list: Lista de longitudes (en compases) a evaluar
         engines: Lista de engines a usar (None = todos)
         skip_existing: No regenerar MIDIs existentes
         max_items: Máximo de items a generar (para pruebas)
+        validate_seed_diversity: Validar que diferentes seeds generen outputs diferentes
         
     Returns:
         Tupla (csv_path, metadata_dict)
@@ -244,7 +250,13 @@ def run_benchmark(
     
     logger.info(f"Engines a evaluar: {engines}")
     logger.info(f"Seeds: {seeds}")
-    logger.info(f"Total de combinaciones: {len(engines)} engines × {len(va_grid)} puntos VA × {len(seeds)} seeds = {len(engines) * len(va_grid) * len(seeds)}")
+    logger.info(f"Bars: {bars_list}")
+    logger.info(f"Total de combinaciones: {len(engines)} engines × {len(va_grid)} puntos VA × {len(seeds)} seeds × {len(bars_list)} bars = {len(engines) * len(va_grid) * len(seeds) * len(bars_list)}")
+    
+    # Validar que hay múltiples seeds si se requiere validación
+    if validate_seed_diversity and len(seeds) < 2:
+        logger.warning("validate_seed_diversity=True pero solo hay 1 seed. Validación deshabilitada.")
+        validate_seed_diversity = False
     
     # Preparar archivo CSV
     csv_path = output_dir / "benchmark_raw.csv"
@@ -253,6 +265,7 @@ def run_benchmark(
         "valence",
         "arousal",
         "seed",
+        "bars",
         "status",
         "generation_time_ms",
         "note_density",
@@ -279,50 +292,67 @@ def run_benchmark(
     for engine_name in engines:
         for valence, arousal in va_grid:
             for seed in seeds:
-                # Verificar límite de items
-                if max_items is not None and item_count >= max_items:
-                    logger.warning(f"Alcanzado límite de items: {max_items}")
-                    break
-                
-                # Generar MIDI
-                result = generate_single_midi(
-                    engine_name=engine_name,
-                    valence=valence,
-                    arousal=arousal,
-                    seed=seed,
-                    output_dir=output_dir,
-                    skip_existing=skip_existing
-                )
-                
-                # Preparar fila CSV
-                row = {
-                    "engine": engine_name,
-                    "valence": valence,
-                    "arousal": arousal,
-                    "seed": seed,
-                    "status": result["status"],
-                    "generation_time_ms": result["generation_time_ms"],
-                    "midi_path": result["midi_path"] or "",
-                    "error": result["error"] or ""
-                }
-                
-                # Añadir métricas
-                metrics = result["metrics"]
-                row["note_density"] = metrics.get("note_density", "")
-                row["pitch_range"] = metrics.get("pitch_range", "")
-                row["mean_velocity"] = metrics.get("mean_velocity", "")
-                row["total_duration_seconds"] = metrics.get("total_duration_seconds", "")
-                
-                results.append(row)
-                item_count += 1
-                
-                # Contadores
-                if result["status"] == "success":
-                    success_count += 1
-                elif result["status"] == "error":
-                    error_count += 1
-                elif result["status"] == "skipped":
-                    skipped_count += 1
+                for length_bars in bars_list:
+                    # Verificar límite de items
+                    if max_items is not None and item_count >= max_items:
+                        logger.warning(f"Alcanzado límite de items: {max_items}")
+                        break
+                    
+                    # Generar MIDI
+                    result = generate_single_midi(
+                        engine_name=engine_name,
+                        valence=valence,
+                        arousal=arousal,
+                        seed=seed,
+                        length_bars=length_bars,
+                        output_dir=output_dir,
+                        skip_existing=skip_existing
+                    )
+                    
+                    # Preparar fila CSV
+                    row = {
+                        "engine": engine_name,
+                        "valence": valence,
+                        "arousal": arousal,
+                        "seed": seed,
+                        "bars": length_bars,
+                        "status": result["status"],
+                        "generation_time_ms": result["generation_time_ms"],
+                        "midi_path": result["midi_path"] or "",
+                        "error": result["error"] or ""
+                    }
+                    
+                    # Añadir métricas
+                    metrics = result["metrics"]
+                    row["note_density"] = metrics.get("note_density", "")
+                    row["pitch_range"] = metrics.get("pitch_range", "")
+                    row["mean_velocity"] = metrics.get("mean_velocity", "")
+                    row["total_duration_seconds"] = metrics.get("total_duration_seconds", "")
+                    
+                    results.append(row)
+                    item_count += 1
+                    
+                    # Contadores
+                    if result["status"] == "success":
+                        success_count += 1
+                    elif result["status"] == "error":
+                        error_count += 1
+                    elif result["status"] == "skipped":
+                        skipped_count += 1
+            
+            # Validar diversidad de seeds (después de 2+ seeds para esta combinación VA)
+            if validate_seed_diversity and len(seeds) >= 2:
+                seed_results = [r for r in results if r['engine'] == engine_name and 
+                               r['valence'] == valence and r['arousal'] == arousal and
+                               r['status'] == 'success']
+                if len(seed_results) >= 2:
+                    # Comparar note_density entre primera y última seed
+                    first_density = seed_results[0]['note_density']
+                    last_density = seed_results[-1]['note_density']
+                    if first_density and last_density and first_density != "" and last_density != "":
+                        if abs(float(first_density) - float(last_density)) < 0.01:
+                            logger.warning(f"⚠️  Posible falta de diversidad: {engine_name} V={valence:+.1f} A={arousal:+.1f} | "
+                                         f"note_density seed {seeds[0]}={first_density} vs seed {seeds[-1]}={last_density}")
             
             if max_items is not None and item_count >= max_items:
                 break
@@ -352,6 +382,7 @@ def run_benchmark(
             "grid_type": grid_type,
             "grid_size": len(va_grid),
             "seeds": seeds,
+            "bars_list": bars_list,
             "engines": engines,
             "max_items": max_items,
             "skip_existing": skip_existing
@@ -410,14 +441,20 @@ Ejemplos:
   # Benchmark completo (4x4 grid, 3 seeds, 3 engines = 144 MIDIs)
   python run_final_benchmark.py
   
+  # Benchmark con 5 seeds (4x4 × 3 engines × 5 seeds = 240 MIDIs)
+  python run_final_benchmark.py --num_seeds 5
+  
+  # Benchmark con seeds específicas
+  python run_final_benchmark.py --seeds "0,1,2,3,4"
+  
   # Benchmark rápido (3x3 grid, 1 seed = 27 MIDIs)
   python run_final_benchmark.py --grid 3x3 --seeds "42"
   
   # Prueba con límite (solo 10 MIDIs)
   python run_final_benchmark.py --max_items 10
   
-  # Benchmark solo baseline
-  python run_final_benchmark.py --engines baseline
+  # Benchmark solo baseline con 5 seeds
+  python run_final_benchmark.py --engines baseline --num_seeds 5
   
   # No regenerar existentes
   python run_final_benchmark.py --skip_existing
@@ -442,8 +479,22 @@ Ejemplos:
     parser.add_argument(
         '--seeds',
         type=str,
-        default='42,43,44',
-        help='Seeds separadas por comas (default: "42,43,44")'
+        default=None,
+        help='Seeds separadas por comas (ej: "42,43,44"). Incompatible con --num_seeds.'
+    )
+    
+    parser.add_argument(
+        '--num_seeds',
+        type=int,
+        default=None,
+        help='Número de seeds consecutivas empezando en 0 (ej: --num_seeds 5 → seeds 0,1,2,3,4). Incompatible con --seeds.'
+    )
+    
+    parser.add_argument(
+        '--bars_list',
+        type=str,
+        default=None,
+        help='Longitudes en bars separadas por comas (ej: "4,8,16"). Default: 8'
     )
     
     parser.add_argument(
@@ -482,17 +533,48 @@ Ejemplos:
         os.environ['CUDA_VISIBLE_DEVICES'] = '' if args.device == 'cpu' else '0'
         logger.info(f"Device forzado: {args.device}")
     
-    # Parsear seeds
-    try:
-        seeds = [int(s.strip()) for s in args.seeds.split(',')]
-    except ValueError:
-        logger.error(f"Error: seeds inválidas '{args.seeds}'. Usar formato: 42,43,44")
+    # Parsear seeds (validar que solo se use una opción)
+    if args.seeds is not None and args.num_seeds is not None:
+        logger.error("Error: No se puede usar --seeds y --num_seeds simultáneamente")
         sys.exit(1)
+    
+    if args.num_seeds is not None:
+        # Generar lista de seeds consecutivas
+        if args.num_seeds < 1:
+            logger.error(f"Error: --num_seeds debe ser >= 1, recibido: {args.num_seeds}")
+            sys.exit(1)
+        seeds = list(range(args.num_seeds))
+        logger.info(f"Generando {args.num_seeds} seeds: {seeds}")
+    elif args.seeds is not None:
+        # Parsear lista de seeds
+        try:
+            seeds = [int(s.strip()) for s in args.seeds.split(',')]
+        except ValueError:
+            logger.error(f"Error: seeds inválidas '{args.seeds}'. Usar formato: 42,43,44")
+            sys.exit(1)
+    else:
+        # Default: 3 seeds
+        seeds = [42, 43, 44]
+        logger.info(f"Usando seeds por defecto: {seeds}")
     
     # Parsear engines
     engines = None
     if args.engines:
         engines = [e.strip() for e in args.engines.split(',')]
+    
+    # Parsear bars_list
+    if args.bars_list is not None:
+        try:
+            bars_list = [int(b.strip()) for b in args.bars_list.split(',')]
+            if any(b <= 0 for b in bars_list):
+                logger.error(f"Error: todos los valores de bars_list deben ser > 0")
+                sys.exit(1)
+        except ValueError:
+            logger.error(f"Error: bars_list inválido '{args.bars_list}'. Usar formato: 4,8,16")
+            sys.exit(1)
+    else:
+        bars_list = [8]  # Default
+        logger.info(f"Usando bars_list por defecto: {bars_list}")
     
     # Crear directorio de salida
     if args.output_dir:
@@ -507,6 +589,7 @@ Ejemplos:
             output_dir=output_dir,
             grid_type=args.grid,
             seeds=seeds,
+            bars_list=bars_list,
             engines=engines,
             skip_existing=args.skip_existing,
             max_items=args.max_items

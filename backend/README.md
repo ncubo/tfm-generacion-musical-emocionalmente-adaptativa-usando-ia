@@ -17,9 +17,10 @@ backend/
 │   │   ├── pipeline/        # Pipeline integrado
 │   │   └── utils/           # Utilidades
 │   └── routes/             # Endpoints API
-├── scripts/                 # Demos y análisis
+├── scripts/                 # Demos, benchmarks y análisis
 ├── data/                    # Datasets
-└── metrics/                 # Resultados benchmarks
+├── results/                 # Outputs de benchmarks
+└── metrics/                 # Métricas de rendimiento
 ```
 
 ## Instalación
@@ -226,6 +227,7 @@ core/
 - [DATASET_FINETUNING.md](DATASET_FINETUNING.md): Construcción de dataset para fine-tuning
 
 ### Evaluación y Benchmarks
+- [METRICAS_IMPLEMENTADAS.md](METRICAS_IMPLEMENTADAS.md): Documentación completa de métricas
 - [BENCHMARK.md](BENCHMARK.md): Evaluación comparativa de motores
 - [COMPARACION_MODELOS.md](COMPARACION_MODELOS.md): Comparación pretrained vs finetuned
 - [EVALUACION_RENDIMIENTO.md](EVALUACION_RENDIMIENTO.md): Métricas de rendimiento

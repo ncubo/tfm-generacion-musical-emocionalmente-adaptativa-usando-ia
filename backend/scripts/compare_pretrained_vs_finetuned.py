@@ -39,6 +39,7 @@ Output:
 import sys
 import argparse
 import csv
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Tuple
@@ -215,6 +216,7 @@ def run_comparison(
                 pretrained_path = pretrained_subdir / f"seed{seed}.mid"
                 
                 try:
+                    start_time = time.time()
                     generated_path = generate_midi_with_model(
                         model_source="pretrained",
                         model_id_or_path=pretrained_id,
@@ -225,6 +227,7 @@ def run_comparison(
                         length_bars=length_bars,
                         max_new_tokens=max_tokens
                     )
+                    generation_time_ms = (time.time() - start_time) * 1000
                     
                     # Extraer métricas
                     features = extract_midi_features(generated_path)
@@ -237,10 +240,13 @@ def run_comparison(
                         'arousal': arousal,
                         'seed': seed,
                         'midi_path': str(pretrained_path.relative_to(output_dir)),
+                        'generation_time_ms': round(generation_time_ms, 2),
                         **features
                     }
                     results.append(result)
-                    logger.debug(f"  Completado: {features['total_notes']} notas, {features['note_density']:.2f} notas/s")
+                    logger.debug(f"  Completado en {generation_time_ms:.0f}ms: "
+                               f"density={features['note_density']:.2f} n/s, "
+                               f"range={features['pitch_range']} st")
                     
                 except Exception as e:
                     logger.error(f"  Error: {e}")
@@ -262,6 +268,7 @@ def run_comparison(
                 finetuned_path_out = finetuned_subdir / f"seed{seed}.mid"
                 
                 try:
+                    start_time = time.time()
                     generated_path = generate_midi_with_model(
                         model_source="finetuned",
                         model_id_or_path=finetuned_path,
@@ -272,6 +279,7 @@ def run_comparison(
                         length_bars=length_bars,
                         max_new_tokens=max_tokens
                     )
+                    generation_time_ms = (time.time() - start_time) * 1000
                     
                     # Extraer métricas
                     features = extract_midi_features(generated_path)
@@ -284,10 +292,13 @@ def run_comparison(
                         'arousal': arousal,
                         'seed': seed,
                         'midi_path': str(finetuned_path_out.relative_to(output_dir)),
+                        'generation_time_ms': round(generation_time_ms, 2),
                         **features
                     }
                     results.append(result)
-                    logger.debug(f"  Completado: {features['total_notes']} notas, {features['note_density']:.2f} notas/s")
+                    logger.debug(f"  Completado en {generation_time_ms:.0f}ms: "
+                               f"density={features['note_density']:.2f} n/s, "
+                               f"range={features['pitch_range']} st")
                     
                 except Exception as e:
                     logger.error(f"  Error: {e}")

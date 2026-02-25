@@ -2,6 +2,8 @@
 
 Evaluación comparativa baseline (reglas) vs transformer_pretrained (Maestro-REMI) con múltiples seeds.
 
+**NOTA:** Este script es LEGACY. Para el benchmark final del TFM, usar `run_final_benchmark.py` (ver [BENCHMARK_FINAL.md](BENCHMARK_FINAL.md)).
+
 ## Uso
 
 ```bash
@@ -14,12 +16,14 @@ python scripts/run_benchmark_models.py --grid default --seed_base 42 --num_seeds
 
 ## Métricas
 
-- `note_density` (notas/seg)
-- `pitch_range` (semitonos)
-- `mean_velocity`
-- `mean_note_duration` (seg)
-- `total_notes`
-- `unique_pitches`
+**Métricas musicales** (proxy de arousal):
+- `note_density` - Notas por segundo (densidad temporal)
+- `pitch_range` - Rango tonal en semitonos
+- `mean_velocity` - Intensidad dinámica MIDI 0-127
+
+**Métricas de rendimiento** (validación y eficiencia):
+- `total_duration_seconds` - Duración total del MIDI
+- `generation_time_ms` - Tiempo de generación en milisegundos
 
 ## Salidas
 

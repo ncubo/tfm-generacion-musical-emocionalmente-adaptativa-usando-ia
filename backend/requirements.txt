@@ -23,6 +23,9 @@ tqdm>=4.65.0  # Progress bars para procesamiento batch
 
 # Dependencias para benchmark y análisis
 matplotlib>=3.5.0  # Generación de figuras (heatmaps, gráficos de barras)
+seaborn>=0.12.0  # Heatmaps avanzados (confusion matrices)
+scipy>=1.10.0  # Métricas estadísticas (KL divergence, correlaciones)
+scikit-learn>=1.3.0  # Métricas de clasificación (confusion matrix, accuracy, F1)
 
 # Dependencias para API REST
 flask>=3.0.0

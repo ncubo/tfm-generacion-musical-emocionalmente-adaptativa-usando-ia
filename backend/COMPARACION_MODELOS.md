@@ -34,7 +34,7 @@ Genera MIDIs con ambos modelos sobre un grid VA y extrae métricas.
 - Grid configurable: 4x4 (16 combinaciones VA) o 3x3 (9 combinaciones)
 - Seeds múltiples para rigor estadístico (default: 3 seeds)
 - Control de longitud fijo (`max_tokens=512`) para benchmark justo
-- Extrae 9 métricas musicales por MIDI
+- Extrae 5 métricas musicales por MIDI (3 principales + 2 técnicas)
 - Exporta CSV detallado con todos los experimentos
 
 **Uso:**
@@ -89,13 +89,16 @@ cat results/compare_pre_vs_finetuned/compare_summary.txt
 
 Cada MIDI generado se analiza con estas métricas:
 
-1. **note_density**: Notas por segundo (densidad temporal)
-2. **pitch_range**: Rango de pitches (max - min en semitonos)
-3. **mean_velocity**: Velocidad promedio (dinámica)
-4. **mean_note_duration**: Duración promedio de notas (segundos)
-5. **total_notes**: Número total de notas
-6. **total_duration_seconds**: Duración total del MIDI
-7. **unique_pitches**: Número de pitches únicos usados
+### Métricas musicales
+- **note_density**: Notas por segundo (densidad temporal, proxy de arousal)
+- **pitch_range**: Rango de pitches en semitonos (max - min, proxy de arousal)
+- **mean_velocity**: Velocidad promedio MIDI 0-127 (dinámica, proxy de arousal)
+
+### Métricas de rendimiento
+- **total_duration_seconds**: Duración total del MIDI en segundos (validación)
+- **generation_time_ms**: Tiempo de generación en milisegundos (eficiencia del sistema)
+
+Estas métricas son defendibles, coherentes con arousal, y no requieren teoría musical avanzada.
 
 ## Requisitos
 
