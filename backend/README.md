@@ -223,15 +223,15 @@ core/
 ## Documentación Adicional
 
 ### Dataset y Fine-tuning
-- [PREPARACION_DATASET.md](PREPARACION_DATASET.md): Preparación del Lakh MIDI dataset
-- [DATASET_FINETUNING.md](DATASET_FINETUNING.md): Construcción de dataset para fine-tuning
+- [PREPARACION_DATASET.md](docs/PREPARACION_DATASET.md): Preparación del Lakh MIDI dataset
+- [DATASET_FINETUNING.md](docs/DATASET_FINETUNING.md): Construcción de dataset para fine-tuning
 
 ### Evaluación y Benchmarks
-- [METRICAS_IMPLEMENTADAS.md](METRICAS_IMPLEMENTADAS.md): Documentación completa de métricas
-- [BENCHMARK.md](BENCHMARK.md): Evaluación comparativa de motores
-- [COMPARACION_MODELOS.md](COMPARACION_MODELOS.md): Comparación pretrained vs finetuned
-- [EVALUACION_RENDIMIENTO.md](EVALUACION_RENDIMIENTO.md): Métricas de rendimiento
-- [DOCUMENTACION_API.md](DOCUMENTACION_API.md): Documentación completa de la API REST
+- [METRICAS_IMPLEMENTADAS.md](docs/METRICAS_IMPLEMENTADAS.md): Documentación completa de métricas
+- [BENCHMARK.md](docs/BENCHMARK.md): Evaluación comparativa de motores
+- [COMPARACION_MODELOS.md](docs/COMPARACION_MODELOS.md): Comparación pretrained vs finetuned
+- [EVALUACION_RENDIMIENTO.md](docs/EVALUACION_RENDIMIENTO.md): Métricas de rendimiento
+- [DOCUMENTACION_API.md](docs/DOCUMENTACION_API.md): Documentación completa de la API REST
 
 ## Notas
 
