@@ -77,22 +77,64 @@ FINETUNE_BUNDLE_DIR = SCRIPT_DIR.parent
 NOTEBOOK_PATHS = [
     FINETUNE_BUNDLE_DIR / "finetune_maestro.ipynb",
     FINETUNE_BUNDLE_DIR / "finetune_maestro_v2.ipynb",
+    FINETUNE_BUNDLE_DIR / "finetune_maestro_clean.ipynb",
 ]
+
+# JSON directo con log_history del Trainer (preferido sobre parsing de notebooks)
+LOG_HISTORY_JSON = ARTIFACTS_DIR / "training_log_history.json"
 
 # ─────────────────────────────────────────────────────────────────────
 # Extracción de logs
 # ─────────────────────────────────────────────────────────────────────
+
+def load_logs_from_json() -> Dict[str, List]:
+    """
+    Carga logs directamente desde training_log_history.json (generado
+    por train_maestro_finetune.py). Es la fuente más fiable y completa.
+
+    Returns:
+        Dict con listas de tuplas (epoch, valor) para cada métrica,
+        o None si el archivo no existe.
+    """
+    if not LOG_HISTORY_JSON.exists():
+        return None
+
+    with open(LOG_HISTORY_JSON, encoding="utf-8") as f:
+        log_history = json.load(f)
+
+    train_losses = []
+    eval_losses = []
+    learning_rates = []
+    grad_norms = []
+
+    for entry in log_history:
+        epoch = entry.get("epoch", 0)
+        if "loss" in entry and "eval_loss" not in entry:
+            train_losses.append((epoch, entry["loss"]))
+            if "learning_rate" in entry:
+                learning_rates.append((epoch, entry["learning_rate"]))
+            if "grad_norm" in entry:
+                grad_norms.append((epoch, entry["grad_norm"]))
+        elif "eval_loss" in entry:
+            eval_losses.append((epoch, entry["eval_loss"]))
+
+    return {
+        "train_losses": train_losses,
+        "eval_losses": eval_losses,
+        "learning_rates": learning_rates,
+        "grad_norms": grad_norms,
+    }
+
 
 def extract_logs_from_notebooks() -> Dict[str, List]:
     """
     Parsea los outputs de los notebooks de Colab para extraer
     las métricas step-by-step del Trainer de HuggingFace.
 
-    El entrenamiento se ejecutó en dos fases:
-      - Notebook 1 (finetune_maestro.ipynb): ejecuciones cortas iniciales
-        (Cell 3: ~0.03 epochs, Cell 4: ~0.34 epochs)
-      - Notebook 2 (finetune_maestro_v2.ipynb): ejecución completa hasta
-        epoch 5 con resume_from_checkpoint
+    El entrenamiento se ejecutó en múltiples fases/notebooks:
+      - finetune_maestro.ipynb: ejecuciones cortas iniciales
+      - finetune_maestro_v2.ipynb: continuación con resume
+      - finetune_maestro_clean.ipynb: run limpio completo (5 epochs)
 
     Returns:
         Dict con listas de tuplas (epoch, valor) para cada métrica.
@@ -763,9 +805,15 @@ def main():
     # Crear directorio de plots
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 1. Extraer logs
-    print("\n[1/3] Extrayendo logs de entrenamiento desde notebooks...")
-    logs = extract_logs_from_notebooks()
+    # 1. Extraer logs — preferir JSON directo si existe
+    print("\n[1/3] Cargando logs de entrenamiento...")
+    logs = load_logs_from_json()
+    if logs and logs["train_losses"]:
+        print(f"  Fuente: {LOG_HISTORY_JSON.name} (JSON directo)")
+    else:
+        print(f"  JSON no encontrado, parseando notebooks...")
+        logs = extract_logs_from_notebooks()
+
     print(f"  Train loss entries: {len(logs['train_losses'])}")
     print(f"  Eval loss entries:  {len(logs['eval_losses'])}")
     print(f"  LR entries:         {len(logs['learning_rates'])}")
@@ -773,9 +821,11 @@ def main():
 
     if not logs["train_losses"]:
         print("\n[ERROR] No se encontraron logs de entrenamiento.")
-        print("  Verifica que los notebooks con outputs existan en:")
+        print("  Opciones:")
+        print(f"    1. Colocar training_log_history.json en {ARTIFACTS_DIR}/")
+        print(f"    2. Tener notebooks con outputs en:")
         for p in NOTEBOOK_PATHS:
-            print(f"    {p}")
+            print(f"       {p}")
         sys.exit(1)
 
     # 2. Cargar artifacts
