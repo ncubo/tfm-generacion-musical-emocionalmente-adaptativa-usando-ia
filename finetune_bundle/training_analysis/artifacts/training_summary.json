@@ -1,0 +1,20 @@
+{
+  "model_name": "Natooz/Maestro-REMI-bpe20k",
+  "device": "cuda",
+  "used_fp16": true,
+  "used_bf16": false,
+  "train_examples": 12820,
+  "val_examples": 1396,
+  "num_train_epochs": 5.0,
+  "max_steps": -1,
+  "learning_rate": 5e-05,
+  "per_device_train_batch_size": 4,
+  "per_device_eval_batch_size": 4,
+  "gradient_accumulation_steps": 2,
+  "train_runtime_sec": 1496.8777332305908,
+  "train_runtime_total_sec": 5850.455672502518,
+  "train_loss": 0.4316215184313834,
+  "eval_loss": 1.9423476457595825,
+  "perplexity": 6.975106844232089,
+  "output_dir": "/content/drive/MyDrive/TFM/finetune_checkpoints"
+}

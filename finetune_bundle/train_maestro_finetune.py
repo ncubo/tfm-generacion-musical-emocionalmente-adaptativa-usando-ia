@@ -10,7 +10,7 @@ import math
 import os
 import time
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import torch
 import miditok
@@ -18,6 +18,7 @@ from datasets import load_from_disk
 from transformers import (
     AutoModelForCausalLM,
     Trainer,
+    TrainerCallback,
     TrainingArguments,
     set_seed,
 )
@@ -38,6 +39,7 @@ class TrainSummary:
     per_device_eval_batch_size: int
     gradient_accumulation_steps: int
     train_runtime_sec: float
+    train_runtime_total_sec: float  # Acumulado entre sesiones (resume)
     train_loss: Optional[float]
     eval_loss: Optional[float]
     perplexity: Optional[float]
@@ -186,8 +188,8 @@ def main():
     parser.add_argument('--weight_decay', type=float, default=0.01)
     
     # Logging y guardado
-    parser.add_argument('--logging_steps', type=int, default=50)
-    parser.add_argument('--eval_steps', type=int, default=200)
+    parser.add_argument('--logging_steps', type=int, default=25)
+    parser.add_argument('--eval_steps', type=int, default=100)
     parser.add_argument('--save_steps', type=int, default=200)
     parser.add_argument('--save_total_limit', type=int, default=2)
     
@@ -327,9 +329,7 @@ def main():
         save_strategy="steps",
         save_steps=args.save_steps,
         save_total_limit=args.save_total_limit,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        greater_is_better=False,
+        load_best_model_at_end=False,
         
         # Otros
         seed=args.seed,
@@ -354,14 +354,57 @@ def main():
     print("INICIANDO ENTRENAMIENTO")
     print("=" * 80)
     
+    # Cargar runtime acumulado de sesiones previas (para resume_from_checkpoint)
+    cumulative_runtime_path = os.path.join(args.output_dir, "cumulative_runtime.json")
+    previous_runtime = 0.0
+    if os.path.exists(cumulative_runtime_path):
+        try:
+            with open(cumulative_runtime_path, "r") as f:
+                rt_data = json.load(f)
+            previous_runtime = rt_data.get("total_runtime_sec", 0.0)
+            print(f"Runtime acumulado de sesiones previas: {previous_runtime/60:.2f} min")
+        except Exception:
+            pass
+    
     start = time.time()
+    
+    # Callback para guardar runtime en cada checkpoint (sobrevive a crashes)
+    class RuntimeTrackerCallback(TrainerCallback):
+        def on_save(self, _args, state, control, **kwargs):
+            elapsed = time.time() - start
+            total = previous_runtime + elapsed
+            try:
+                with open(cumulative_runtime_path, "w") as f:
+                    json.dump({
+                        "total_runtime_sec": total,
+                        "session_runtime_sec": elapsed,
+                        "previous_runtime_sec": previous_runtime,
+                        "last_step": state.global_step,
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                    }, f, indent=2)
+            except Exception:
+                pass
+    
+    trainer.add_callback(RuntimeTrackerCallback())
     
     try:
         train_result = trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
-        train_runtime = time.time() - start
+        session_runtime = time.time() - start
+        total_runtime = previous_runtime + session_runtime
+        
+        # Guardar runtime acumulado (por si hay otro resume después)
+        with open(cumulative_runtime_path, "w") as f:
+            json.dump({
+                "total_runtime_sec": total_runtime,
+                "session_runtime_sec": session_runtime,
+                "previous_runtime_sec": previous_runtime,
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+            }, f, indent=2)
         
         print("\n" + "=" * 80)
         print("ENTRENAMIENTO COMPLETADO")
+        print(f"  Sesión actual: {session_runtime/60:.2f} min")
+        print(f"  Acumulado total: {total_runtime/60:.2f} min ({total_runtime/3600:.2f} h)")
         print("=" * 80)
         
         # Evaluar
@@ -399,7 +442,8 @@ def main():
             per_device_train_batch_size=args.per_device_train_batch_size,
             per_device_eval_batch_size=args.per_device_eval_batch_size,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
-            train_runtime_sec=float(train_runtime),
+            train_runtime_sec=float(session_runtime),
+            train_runtime_total_sec=float(total_runtime),
             train_loss=float(train_loss) if train_loss is not None else None,
             eval_loss=float(eval_loss) if eval_loss is not None else None,
             perplexity=float(perplexity) if perplexity is not None else None,
@@ -410,14 +454,28 @@ def main():
         with open(summary_path, "w", encoding="utf-8") as f:
             json.dump(asdict(summary), f, indent=2)
         
+        # Guardar log_history completo (métricas step-by-step)
+        log_history = trainer.state.log_history if hasattr(trainer.state, 'log_history') else []
+        log_history_path = os.path.join(args.output_dir, "training_log_history.json")
+        with open(log_history_path, "w", encoding="utf-8") as f:
+            json.dump(log_history, f, indent=2)
+        print(f"Log history guardado: {len(log_history)} entries en {log_history_path}")
+        
+        # Copiar log_history también al directorio final
+        final_log_path = os.path.join(final_dir, "training_log_history.json")
+        with open(final_log_path, "w", encoding="utf-8") as f:
+            json.dump(log_history, f, indent=2)
+        
         print("\n" + "=" * 80)
         print("TRAINING COMPLETADO")
         print("=" * 80)
         print(f"Modelo final: {final_dir}")
         print(f"Summary: {summary_path}")
+        print(f"Log history: {log_history_path} ({len(log_history)} entries)")
         print(f"eval_loss: {summary.eval_loss}")
         print(f"perplexity: {summary.perplexity}")
-        print(f"Duration: {train_runtime/60:.2f} min")
+        print(f"Sesión: {session_runtime/60:.2f} min")
+        print(f"Total acumulado: {total_runtime/60:.2f} min ({total_runtime/3600:.2f} h)")
         print("=" * 80)
         
     except KeyboardInterrupt:
