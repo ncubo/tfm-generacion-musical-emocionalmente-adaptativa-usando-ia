@@ -85,6 +85,12 @@ python scripts/run_final_benchmark.py --skip_existing
 python scripts/run_final_benchmark.py --device cpu
 ```
 
+**Benchmark TFM completo** (480 MIDIs, ~20-25 min):
+```bash
+python scripts/run_final_benchmark.py --num_seeds 5 --bars_list "4,16"
+```
+Este es el comando usado para el benchmark final del TFM: 3 engines × 16 VA × 5 seeds × 2 longitudes = 480 MIDIs.
+
 **Evaluar escalabilidad** (múltiples longitudes, ej: 4, 8, 16 compases):
 ```bash
 python scripts/run_final_benchmark.py --bars_list "4,8,16" --num_seeds 2

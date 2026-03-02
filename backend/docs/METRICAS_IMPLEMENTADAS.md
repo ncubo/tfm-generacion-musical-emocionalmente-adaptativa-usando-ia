@@ -1,7 +1,5 @@
 # Métricas del Sistema
 
-**Última verificación:** 24/02/2026
-
 ---
 
 ## 1. Métricas Musicales
