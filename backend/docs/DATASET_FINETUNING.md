@@ -64,13 +64,13 @@ Muestra estadísticas, decode de ejemplos, y valida ausencia de IDs negativos.
 
 Los tokens se añaden al tokenizador con `add_to_vocab()` DURANTE la construcción del dataset. Los IDs finales están ya presentes en el dataset guardado (no son placeholders).
 
-## Estadísticas (16/02/2026)
+## Estadísticas
 
-- **Archivos:** 1851/1851 procesados (100%)
-- **Ejemplos:** 6489 total (5893 train, 596 val)
+- **Archivos:** 4284 procesados (de 5000 candidatos tras filtrado)
+- **Ejemplos:** 14216 total (12820 train, 1396 val)
 - **Window:** 1024 tokens, stride 512
 - **Vocab:** 20018 (20000 base + 18 conditioning)
-- **Media longitud:** ~945 tokens
+- **Media longitud:** ≤1024 tokens (window_size)
 
 **Distribución VA:** Sesgo hacia valence negativo (música contemplativa), arousal uniforme.
 

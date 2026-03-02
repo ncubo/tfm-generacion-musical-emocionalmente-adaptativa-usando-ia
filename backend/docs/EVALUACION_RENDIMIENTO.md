@@ -49,6 +49,10 @@ python scripts/analyze_metrics.py --input metrics/benchmark_YYYYMMDD_HHMMSS.json
 | < 500 ms | Excelente |
 | 500-1000 ms | Aceptable |
 | > 1000 ms | Mejorable |
+
+## Estructura de Salida
+
+```
 metrics/
 ├── benchmark_YYYYMMDD_HHMMSS.json       # Datos crudos + estadísticas
 ├── reporte_rendimiento_YYYYMMDD.txt     # Reporte completo
