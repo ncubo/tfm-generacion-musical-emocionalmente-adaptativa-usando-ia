@@ -9,6 +9,8 @@ from flask import Blueprint, jsonify, current_app, request
 import numpy as np
 import cv2
 import threading
+import time
+import hashlib
 from ..core.utils.metrics import get_metrics
 from ..core.emotion.deepface_detector import DeepFaceEmotionDetector
 from ..core.va.mapper import emotion_to_va
@@ -17,8 +19,80 @@ from ..core.pipeline.emotion_pipeline import EmotionPipeline
 
 emotion_bp = Blueprint('emotion', __name__)
 
-# Lock global para thread-safety en lazy initialization
+# Lock global para thread-safety en lazy initialization (webcam pipeline)
 _pipeline_lock = threading.Lock()
+
+# Lock para el detector compartido de /emotion-from-frame
+_frame_detector_lock = threading.Lock()
+
+# Lock para el dict de pipelines por sesión
+_frame_sessions_lock = threading.Lock()
+
+# Tiempo máximo de inactividad de una sesión de frames (segundos)
+_FRAME_SESSION_TIMEOUT = 60.0
+
+
+def _get_session_key() -> str:
+    """Genera una clave de sesión única basada en IP y User-Agent del cliente."""
+    remote_addr = request.remote_addr or ''
+    user_agent = request.headers.get('User-Agent', '')
+    raw = f"{remote_addr}:{user_agent}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _get_shared_frame_detector() -> DeepFaceEmotionDetector:
+    """
+    Obtiene el detector compartido para /emotion-from-frame (lazy init).
+
+    Reutiliza una única instancia por proceso en lugar de crear una nueva
+    por request, evitando la sobrecarga de re-inicialización de modelos.
+    """
+    detector = current_app.config.get('FRAME_DETECTOR')
+    if detector is not None:
+        return detector
+    with _frame_detector_lock:
+        detector = current_app.config.get('FRAME_DETECTOR')
+        if detector is not None:
+            return detector
+        detector = DeepFaceEmotionDetector(enforce_detection=False)
+        current_app.config['FRAME_DETECTOR'] = detector
+        current_app.logger.info("[LAZY INIT] Detector de frames inicializado")
+        return detector
+
+
+def _get_or_create_frame_pipeline(session_key: str) -> EmotionPipeline:
+    """
+    Obtiene o crea un pipeline de estabilización por sesión.
+
+    Mantiene un dict en app.config['FRAME_PIPELINES'] con entradas:
+        { session_key: {'pipeline': EmotionPipeline, 'last_access': float} }
+
+    Las sesiones inactivas más de _FRAME_SESSION_TIMEOUT segundos se eliminan
+    automáticamente en cada llamada para evitar fuga de memoria.
+    """
+    now = time.monotonic()
+
+    with _frame_sessions_lock:
+        sessions = current_app.config.setdefault('FRAME_PIPELINES', {})
+
+        # Limpiar sesiones expiradas
+        expired_keys = [
+            k for k, v in sessions.items()
+            if now - v['last_access'] > _FRAME_SESSION_TIMEOUT
+        ]
+        for k in expired_keys:
+            del sessions[k]
+
+        # Crear pipeline nuevo si no existe para esta sesión
+        if session_key not in sessions:
+            sessions[session_key] = {
+                'pipeline': EmotionPipeline(window_size=7, alpha=0.3, min_confidence=60.0),
+                'last_access': now
+            }
+        else:
+            sessions[session_key]['last_access'] = now
+
+        return sessions[session_key]['pipeline']
 
 
 def _get_or_create_pipeline():
@@ -231,20 +305,24 @@ def detect_emotion_from_frame():
         
         # Obtener métricas
         metrics = get_metrics()
-        
-        # Crear detector (sin enforce_detection para manejar caso sin rostro)
-        detector = DeepFaceEmotionDetector(enforce_detection=False)
-        
+
+        # Obtener detector compartido (evita re-instanciación por request)
+        detector = _get_shared_frame_detector()
+
         # Medir tiempo de detección
         with metrics.measure('emotion_from_frame', metadata={'endpoint': '/emotion-from-frame'}):
-            # Detectar emoción en el frame
             emotion_result = detector.predict(frame)
-        
-        # Extraer emoción detectada
-        emotion = emotion_result['emotion']
+
+        # Obtener/crear pipeline de estabilización para esta sesión
+        session_key = _get_session_key()
+        pipeline = _get_or_create_frame_pipeline(session_key)
+
+        # Aplicar estabilización temporal (EMA + ventana de mayoría)
+        stabilized = pipeline.process_detection(emotion_result)
+
         face_detected = emotion_result.get('face_detected', False)
-        
-        # Si no se detectó rostro, devolver neutral (0, 0)
+
+        # Si no se detectó rostro, devolver neutral sin alterar los buffers
         if not face_detected:
             current_app.logger.info("No se detectó rostro en la imagen, devolviendo neutral")
             return jsonify({
@@ -253,15 +331,12 @@ def detect_emotion_from_frame():
                 'arousal': 0.0,
                 'face_detected': False
             }), 200
-        
-        # Mapear emoción a coordenadas VA
-        valence, arousal = emotion_to_va(emotion)
-        
-        # Construir respuesta
+
+        # Construir respuesta con valores estabilizados
         response = {
-            'emotion': emotion,
-            'valence': round(valence, 2),
-            'arousal': round(arousal, 2),
+            'emotion': stabilized['emotion'],
+            'valence': round(stabilized['valence'], 2),
+            'arousal': round(stabilized['arousal'], 2),
             'face_detected': True
         }
         
