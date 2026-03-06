@@ -71,8 +71,8 @@ class EmotionPipeline:
     
     def __init__(
         self,
-        camera,
-        detector,
+        camera=None,
+        detector=None,
         window_size: int = 7,
         alpha: float = 0.3,
         min_confidence: float = 60.0
@@ -120,6 +120,7 @@ class EmotionPipeline:
     def start(self):
         """
         Inicia el pipeline (activa la cámara).
+        No-op si el pipeline se creó sin cámara.
         
         Raises:
             RuntimeError: Si la cámara no se puede iniciar
@@ -127,7 +128,8 @@ class EmotionPipeline:
         Example:
             >>> pipeline.start()
         """
-        self.camera.start()
+        if self.camera is not None:
+            self.camera.start()
     
     def step(self) -> Dict[str, any]:
         """
@@ -160,6 +162,10 @@ class EmotionPipeline:
             V: 0.68, A: 0.58
         """
         try:
+            # Verificar que tenemos cámara y detector
+            if self.camera is None or self.detector is None:
+                return self._get_neutral_result()
+            
             # 1. Capturar frame
             success, frame = self.camera.read()
             
@@ -200,11 +206,55 @@ class EmotionPipeline:
     def stop(self):
         """
         Detiene el pipeline y libera recursos (libera la cámara).
+        No-op si el pipeline se creó sin cámara.
         
         Example:
             >>> pipeline.stop()
         """
-        self.camera.release()
+        if self.camera is not None:
+            self.camera.release()
+
+    def process_detection(self, emotion_result: Dict) -> Dict:
+        """
+        Aplica estabilización temporal a un resultado de detección ya obtenido.
+
+        A diferencia de step(), no captura frames de cámara: toma el dict
+        devuelto por detector.predict() y aplica el pipeline de estabilización
+        completo (normalización → ventana de mayoría → mapeo VA → EMA).
+
+        Útil para el endpoint /emotion-from-frame, donde la imagen viene del
+        frontend y la detección se realiza en el servidor sin webcam propia.
+
+        Si no se detectó rostro (face_detected=False), devuelve neutral sin
+        alterar los buffers internos de estabilización.
+
+        Args:
+            emotion_result (Dict): Resultado de DeepFaceEmotionDetector.predict(),
+                con claves 'emotion', 'probabilities' y 'face_detected'.
+
+        Returns:
+            Dict[str, any]: Resultado estabilizado con las mismas claves que step().
+        """
+        face_detected = emotion_result.get('face_detected', False)
+
+        if not face_detected:
+            return self._get_neutral_result()
+
+        raw_emotion = emotion_result.get('emotion', 'neutral')
+        scores = emotion_result.get('probabilities', {})
+
+        # Normalizar → estabilizar → mapear VA → suavizar
+        normalized_emotion = normalize_emotion(raw_emotion)
+        stable_emotion = self._stabilize_emotion(normalized_emotion, scores)
+        valence, arousal = emotion_to_va(stable_emotion)
+        smoothed_valence, smoothed_arousal = self._apply_ema(valence, arousal)
+
+        return {
+            'emotion': stable_emotion,
+            'valence': smoothed_valence,
+            'arousal': smoothed_arousal,
+            'scores': scores
+        }
     
     def _stabilize_emotion(self, emotion: str, scores: Dict[str, float]) -> str:
         """
