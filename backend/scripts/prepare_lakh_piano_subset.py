@@ -34,7 +34,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Program numbers de piano en General MIDI (0-7)
+# Program numbers de teclado/piano en General MIDI Level 1.
+# Ref: MIDI Manufacturers Association. General MIDI Level 1 Sound Set.
+#
+# Programs 0–7:
+# 0 Acoustic Grand Piano
+# 1 Bright Acoustic Piano
+# 2 Electric Grand Piano
+# 3 Honky-Tonk Piano
+# 4 Electric Piano 1
+# 5 Electric Piano 2
+# 6 Harpsichord
+# 7 Clavinet
 PIANO_PROGRAMS = list(range(8))  # 0-7: Acoustic Grand Piano to Clavinet
 
 
@@ -192,7 +203,9 @@ def should_accept_piano_midi(
     if total_notes < min_notes:
         return False, f"too_few_notes_{total_notes}"
     
-    # Verificar rango tonal mínimo (al menos 1 octava)
+    # Verificar rango tonal mínimo (al menos 1 octava = 12 semitonos)
+    # Umbral heurístico: un rango menor a una octava suele indicar material
+    # melódicamente limitado, con poca variedad interválica para entrenamiento.
     if metadata['pitch_range'] < 12:
         return False, f"narrow_range_{metadata['pitch_range']}"
     

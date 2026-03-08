@@ -90,8 +90,15 @@ class DeepFaceEmotionDetector:
                 result = result[0]
             
             # Verificar confianza de detección facial
-            # face_confidence es 0.0 cuando no hay rostro real
-            # Usamos un umbral de 0.9 (90%) para considerar un rostro válido
+            # face_confidence refleja la confianza del detector facial.
+            # Valores bajos suelen indicar detecciones débiles o falsos positivos.
+            #
+            # Se usa un umbral heurístico de 0.9 para aceptar la detección.
+            #
+            # DeepFace puede utilizar distintos detectores faciales dependiendo
+            # de la configuración (OpenCV, MTCNN, RetinaFace, etc.).
+            # Para retinaface: Deng, J. et al. (2020). RetinaFace: Single-Shot Multi-Level
+            # Face Localisation in the Wild. CVPR.
             face_confidence = result.get('face_confidence', 0.0)
             
             if face_confidence < 0.9:

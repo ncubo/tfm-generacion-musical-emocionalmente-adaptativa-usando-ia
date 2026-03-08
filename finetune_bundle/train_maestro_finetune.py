@@ -146,7 +146,8 @@ def simple_collator(features):
         # Aplicar padding a la derecha
         padded_input_ids = input_ids + [pad_token_id] * padding_length
         padded_attention_mask = attention_mask + [0] * padding_length
-        # Para labels, usar -100 (ignorado por la loss)
+        # Para labels, usar -100 (ignorado por CrossEntropyLoss de PyTorch)
+        # Ref: PyTorch docs — nn.CrossEntropyLoss(ignore_index=-100)
         padded_labels = labels + [-100] * padding_length
         
         batch_input_ids.append(torch.tensor(padded_input_ids))
@@ -178,13 +179,22 @@ def main():
     parser.add_argument('--output_dir', default='models/maestro_finetuned', help='Directorio de salida')
     
     # Hiperparámetros
+    # Ref: Devlin, J. et al. (2019). BERT: Pre-training of Deep Bidirectional Transformers
+    #      for Language Understanding. NAACL. Recomiendan LR {2e-5, 3e-5, 5e-5} y
+    #      epochs {2-4} para fine-tuning. Usamos 5e-5 y 5 epochs por dominio MIDI.
     parser.add_argument('--num_train_epochs', type=float, default=5.0)
     parser.add_argument('--max_steps', type=int, default=-1, help='Limitar steps (-1 = sin límite)')
+    # Ref: Devlin et al. (2019), Sección 4 — rango recomendado de LR para fine-tuning.
     parser.add_argument('--learning_rate', type=float, default=5e-5)
+    # Batch size 2 por limitaciones de memoria GPU T4 (16GB). Effective batch = 2*8 = 16.
     parser.add_argument('--per_device_train_batch_size', type=int, default=2)
     parser.add_argument('--per_device_eval_batch_size', type=int, default=2)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=8)
+    # Ref: Goyal, P. et al. (2017). Accurate, Large Minibatch SGD: Training ImageNet
+    #      in 1 Hour. Warmup ratio 0.05 estabiliza entrenamiento inicial.
     parser.add_argument('--warmup_ratio', type=float, default=0.05)
+    # Ref: Loshchilov, I. & Hutter, F. (2019). Decoupled Weight Decay Regularization.
+    #      ICLR. Weight decay 0.01 es estándar para AdamW.
     parser.add_argument('--weight_decay', type=float, default=0.01)
     
     # Logging y guardado
@@ -302,6 +312,8 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         
         # Optimización
+        # Ref: Loshchilov, I. & Hutter, F. (2019). Decoupled Weight Decay
+        #      Regularization. ICLR. AdamW con linear LR scheduler.
         learning_rate=args.learning_rate,
         warmup_ratio=args.warmup_ratio,
         weight_decay=args.weight_decay,

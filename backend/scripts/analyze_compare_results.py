@@ -320,6 +320,7 @@ def generate_summary_text(aggregated: List[Dict], raw_results: List[Dict], outpu
     lines.append(f"4. CONSISTENCIA (variabilidad entre seeds):")
     lines.append(f"   - Pretrained: std promedio = {pre_std_avg:.3f}")
     lines.append(f"   - Finetuned: std promedio = {fin_std_avg:.3f}")
+    # Umbrales 0.8/1.2 (±20%) son heurísticos para declarar diferencia práctica.
     if fin_std_avg < pre_std_avg * 0.8:
         lines.append(f"   → Finetuned es más consistente (menor variabilidad)")
     elif fin_std_avg > pre_std_avg * 1.2:

@@ -103,6 +103,13 @@ class EmotionPipeline:
         self.detector = detector
         
         # Parámetros de estabilización
+        # Ref (EMA): Brown, R. G. (1963). Smoothing, Forecasting and Prediction of
+        #            Discrete Time Series. Prentice-Hall. α=0.3 es valor común
+        #            para suavizado moderado en filtros de señales en tiempo real.
+        # Ref (Ventana de mayoría): Kittler, J. et al. (1998). On combining classifiers.
+        #            IEEE TPAMI, 20(3). Majority voting como ensemble method estándar.
+        # Nota: α=0.3, window_size=7, min_confidence=60% son heurísticas de diseño
+        #       no calibradas empíricamente. A 2fps, 7 frames ≈ 3.5s de historial.
         self.window_size = max(1, window_size)
         self.alpha = max(0.01, min(1.0, alpha))  # Clamped entre 0.01 y 1.0
         self.min_confidence = max(0.0, min(100.0, min_confidence))  # Entre 0 y 100

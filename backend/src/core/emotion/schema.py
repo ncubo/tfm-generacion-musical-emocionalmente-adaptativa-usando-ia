@@ -11,7 +11,18 @@ más el estado neutral, asegurando consistencia en todo el sistema.
 
 from typing import Dict, List
 
-# Conjunto fijo de emociones estándar del sistema
+# Conjunto fijo de emociones estándar del sistema.
+#
+# Las seis emociones básicas siguen la teoría de emociones básicas de Ekman:
+# Ref:
+# Ekman, P. (1992). An Argument for Basic Emotions. Cognition & Emotion.
+# Ekman, P. & Friesen, W. (1971). Constants across cultures in the face and emotion.
+#
+# Estas incluyen:
+# happy, sad, angry, fear, surprise, disgust.
+#
+# Se añade "neutral" como categoría técnica común en sistemas de
+# reconocimiento facial cuando no se detecta una emoción dominante.
 STANDARD_EMOTIONS: List[str] = [
     "happy",      # Felicidad, alegría
     "sad",        # Tristeza
@@ -22,8 +33,13 @@ STANDARD_EMOTIONS: List[str] = [
     "neutral"     # Estado neutral, sin emoción dominante
 ]
 
-# Mapeo de etiquetas de DeepFace a emociones estándar
-# Este diccionario permite convertir las salidas de DeepFace al formato interno
+# Mapeo de etiquetas de DeepFace a emociones estándar.
+#
+# DeepFace devuelve típicamente las siguientes categorías emocionales:
+# angry, disgust, fear, happy, sad, surprise, neutral.
+#
+# Este conjunto coincide con las seis emociones básicas de Ekman
+# más la categoría técnica "neutral" usada en muchos sistemas FER.
 DEEPFACE_TO_STANDARD: Dict[str, str] = {
     # Mapeo directo (DeepFace usa las mismas etiquetas que nuestro estándar)
     "happy": "happy",

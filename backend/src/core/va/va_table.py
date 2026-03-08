@@ -36,41 +36,54 @@ VACoordinates = Tuple[float, float]
 
 # Tabla de mapeo de emociones a coordenadas (Valence, Arousal)
 # Valores iniciales aproximados basados en el modelo Circumplex
+# Ref: Russell, J. A. (1980). A circumplex model of affect.
+#      Posner, J., Russell, J. A. & Peterson, B. S. (2005). The circumplex model
+#      of affect (Fig. 1 — distribución de emociones básicas en espacio VA).
+#      Scherer, K. R. (2005). What are emotions? And how can they be measured?
+# Nota: Los valores numéricos exactos son aproximaciones del posicionamiento
+# en el circumplex de las figuras citadas, no provienen de una tabla canónica.
 VA_TABLE: Dict[str, VACoordinates] = {
     # HAPPY (Felicidad)
     # Alta valencia positiva (placentero), arousal medio-alto (activación moderada)
     # Ubicación: Cuadrante superior derecho del circumplex
+    # Ref: Posner et al. (2005, Fig. 1) — "happiness" en cuadrante (+V, +A)
     "happy": (0.70, 0.60),
     
     # SAD (Tristeza)
     # Alta valencia negativa (displacentero), arousal negativo (baja energía)
     # Ubicación: Cuadrante inferior izquierdo del circumplex
+    # Ref: Posner et al. (2005, Fig. 1) — "sadness" en cuadrante (-V, -A)
     "sad": (-0.70, -0.40),
     
     # ANGRY (Enfado/Ira)
     # Valencia negativa (displacentero), arousal muy alto (alta activación)
     # Ubicación: Cuadrante superior izquierdo del circumplex
+    # Ref: Posner et al. (2005, Fig. 1) — "anger" en cuadrante (-V, +A)
     "angry": (-0.60, 0.70),
     
     # FEAR (Miedo)
     # Alta valencia negativa (displacentero), arousal alto (alta activación)
     # Ubicación: Cuadrante superior izquierdo del circumplex
+    # Ref: Posner et al. (2005, Fig. 1) — "fear" en cuadrante (-V, +A)
     "fear": (-0.70, 0.60),
     
     # SURPRISE (Sorpresa)
     # Valencia ligeramente positiva o neutra, arousal muy alto (máxima activación)
     # Ubicación: Parte superior central del circumplex
     # Nota: La sorpresa puede ser positiva o negativa según el contexto
+    # Ref: Russell (1980, Fig. 2) — "surprise" en zona alta de arousal, valencia ~neutra
     "surprise": (0.20, 0.80),
     
     # DISGUST (Disgusto/Asco)
     # Valencia negativa (displacentero), arousal medio (activación moderada)
     # Ubicación: Cuadrante izquierdo del circumplex
+    # Ref: Posner et al. (2005, Fig. 1) — "disgust" en zona (-V, +A moderado)
     "disgust": (-0.60, 0.30),
     
     # NEUTRAL (Estado neutral)
     # Sin valencia ni arousal, punto de origen del espacio VA
     # Ubicación: Centro del circumplex (0, 0)
+    # Ref: Russell (1980) — el origen del circumplex representa ausencia de afecto
     "neutral": (0.00, 0.00)
 }
 

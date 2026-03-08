@@ -455,7 +455,13 @@ def generate_summary_text(aggregated: Dict, data: List[Dict], output_path: Path)
             metric_display = metric.replace('_', ' ').title()
             lines.append(f"     - {metric_display:20s}: rho = {rho:+.3f}  (p = {p_value:.3e})")
             
-            # Interpretación y validación
+            # Interpretación heurística de la magnitud de la correlación (|rho|).
+            # Aproximadamente alineada con escalas pedagógicas usadas en textos aplicados
+            # (p. ej., Dancey & Reidy, 2007), donde valores ~0.1–0.3 suelen considerarse
+            # débiles, ~0.4–0.6 moderados y ~0.7–0.9 fuertes.
+            #
+            # Los umbrales exactos varían entre autores; aquí se usan cortes prácticos
+            # (0.3 / 0.5 / 0.7) como convención para clasificar la magnitud.
             if abs(rho) > 0.7:
                 strength = "FUERTE"
             elif abs(rho) > 0.5:

@@ -87,10 +87,24 @@ ENGINES_CONFIG = {
 def create_va_grid(grid_type: str = "4x4") -> List[Tuple[float, float]]:
     """
     Crea un grid de valores (valence, arousal).
-    
+
+    El espacio valence–arousal (VA) se basa en el modelo circumplejo
+    de emoción de Russell (1980), donde las emociones se representan
+    en dos dimensiones continuas: valence y arousal.
+
+    Ref:
+    Russell, J. A. (1980). A Circumplex Model of Affect.
+    Journal of Personality and Social Psychology, 39(6), 1161–1178.
+
+    La discretización en grids (3×3 o 4×4) es una decisión de muestreo
+    del proyecto para cubrir el espacio VA durante la generación.
+
+    Los valores específicos (p.ej. -0.8, -0.2, 0.2, 0.8) son heurísticos
+    y se eligen para cubrir los cuadrantes evitando los extremos ±1.
+
     Args:
         grid_type: "4x4" o "3x3"
-        
+
     Returns:
         Lista de tuplas (v, a)
     """

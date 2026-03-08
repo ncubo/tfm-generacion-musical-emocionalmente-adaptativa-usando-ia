@@ -226,15 +226,23 @@ def calculate_musical_structure_score(data: list, target_engine: str = 'transfor
 
 def calculate_latency_score(data: list, target_engine: str = 'transformer_finetuned') -> Tuple[float, Dict]:
     """
-    Calcula LatencyScore basado en tiempo de generación.
-    
+    Calcula LatencyScore basado en tiempo medio de generación.
+
     Score = 1 - (latency_mean / latency_max_acceptable)
     Menor latencia = mayor score.
-    
+
+    Referencia de UX:
+    Nielsen (1993) propone umbrales orientativos de respuesta percibida
+    (~0.1 s instantáneo, ~1 s fluido, ~10 s espera tolerable).
+
+    Nota: el uso de 10 s como cota máxima y la normalización lineal a [0,1]
+    son decisiones heurísticas de este proyecto, no una fórmula derivada
+    directamente de Nielsen.
+
     Args:
         data: Datos crudos del benchmark
         target_engine: Engine a evaluar
-        
+
     Returns:
         Tupla (score normalizado 0-1, dict con detalles)
     """
@@ -256,8 +264,10 @@ def calculate_latency_score(data: list, target_engine: str = 'transformer_finetu
     mean_latency = np.mean(latencies)
     std_latency = np.std(latencies, ddof=1) if len(latencies) > 1 else 0.0
     
-    # Latencia máxima aceptable: 10 segundos (10000 ms)
-    # En la práctica, transformers suelen estar en 500-3000ms
+    # Nielsen (1993) sugiere umbrales orientativos de ~0.1 s (instantáneo),
+    # ~1 s (fluido) y ~10 s (límite de atención sostenida).
+    # Aquí se usa 10 s como cota práctica para normalizar latencia en un score [0,1];
+    # esta transformación lineal es una heurística de diseño del proyecto.
     max_acceptable_latency = 10000.0
     
     # Score = 1 - (latency / max_acceptable), clamped a [0, 1]
@@ -279,7 +289,15 @@ def calculate_latency_score(data: list, target_engine: str = 'transformer_finetu
 
 
 def _interpret_correlation_strength(score: float) -> str:
-    """Interpreta la fuerza de correlación."""
+    """
+    Interpreta heurísticamente la magnitud de la correlación.
+
+    Los cortes 0.3 / 0.5 / 0.7 se usan aquí como convención práctica.
+    Están aproximadamente alineados con escalas pedagógicas de interpretación
+    de correlaciones, pero no corresponden exactamente a una tabla única
+    universalmente aceptada.
+
+    """
     if score >= 0.7:
         return "STRONG (excellent emotional alignment)"
     elif score >= 0.5:
@@ -291,7 +309,11 @@ def _interpret_correlation_strength(score: float) -> str:
 
 
 def _interpret_stability(std: float) -> str:
-    """Interpreta la estabilidad del sistema."""
+    """Interpreta la estabilidad del sistema.
+
+    Los umbrales usados (<5, <10, <20) son heurísticos y fueron definidos
+    como criterio práctico de consistencia para este proyecto.
+    """
     if std < 5:
         return "VERY STABLE (excellent consistency)"
     elif std < 10:
@@ -303,7 +325,15 @@ def _interpret_stability(std: float) -> str:
 
 
 def _interpret_latency(latency_ms: float) -> str:
-    """Interpreta latencia."""
+    """Interpreta latencia.
+
+    Inspirado en guías clásicas de UX sobre tiempos de respuesta percibidos
+    (Nielsen, 1993): ~0.1 s instantáneo, ~1 s mantiene el flujo de interacción,
+    ~10 s es un límite de espera tolerable.
+
+    Los cortes usados aquí (0.5 / 1.5 / 5 s) son una adaptación heurística
+    del proyecto para clasificar latencia de generación.
+    """
     if latency_ms < 500:
         return "EXCELLENT (real-time capable)"
     elif latency_ms < 1500:
@@ -322,6 +352,9 @@ def calculate_system_coherence_score(
 ) -> Tuple[float, Dict]:
     """
     Calcula SystemCoherenceScore unificado.
+
+    Los pesos (0.5, 0.3, 0.2) son heurísticos y priorizan el alineamiento
+    emocional como componente principal del sistema.
     
     Args:
         emotional_score: EmotionalAlignmentScore (0-1)
