@@ -290,7 +290,15 @@ def _load_model_and_tokenizer(
         else:
             raise ValueError(f"model_source inválido: {model_source} (debe ser 'pretrained' o 'finetuned')")
         
-        original_vocab_size = 20000  # Vocab size base de Maestro-REMI-bpe20k
+        # Vocab size base del tokenizador Maestro-REMI-bpe20k.
+        #
+        # Este tokenizador utiliza representación REMI con compresión BPE
+        # y un vocabulario de aproximadamente 20k tokens.
+        #
+        # Fuente:
+        # HuggingFace model repository: "Natooz/Maestro-REMI-bpe20k"
+        # (tokenizador entrenado con MidiTok).
+        original_vocab_size = 20000
         logger.info(f"Tokenizador cargado: vocab_size={len(tokenizer)}")
         
         # Cargar modelo de lenguaje causal
@@ -345,24 +353,46 @@ def _derive_sampling_config(params: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dict con parámetros de sampling (temperature, top_p, max_new_tokens)
     """
-    # Normalizar indicadores de "energía musical" (0-1)
+    # Normalizar indicadores de "energía musical" al rango [0,1]
+    # Tempo se normaliza suponiendo un rango típico de 60–180 BPM.
+    # Este rango es una convención heurística del sistema.
     density = params.get('density', 0.5)
     rhythm_complexity = params.get('rhythm_complexity', 0.5)
     tempo_bpm = params.get('tempo_bpm', 120)
     tempo_normalized = min(1.0, max(0.0, (tempo_bpm - 60) / 120))  # 60-180 bpm -> 0-1
     
     # Promedio ponderado de energía
+    # Los pesos 0.4/0.4/0.2 son heurísticos.
+    #
+    # En la literatura de emoción musical, variables como tempo,
+    # intensidad y actividad rítmica suelen correlacionarse con
+    # mayor arousal o energía musical.
+    #
+    # Referencias generales:
+    # - Eerola, T. et al. (2009)
+    # - Gabrielsson, A. & Lindström, E. (2010)
     energy = 0.4 * density + 0.4 * rhythm_complexity + 0.2 * tempo_normalized
     
     # Mapear energía a parámetros de sampling
-    # Temperature: 0.7 (baja energía) -> 1.1 (alta energía)
+    # Temperature y top-p controlan la diversidad en generación autoregresiva.
+    #
+    # Ref:
+    # Holtzman, A. et al. (2019). The Curious Case of Neural Text Degeneration.
+    # ICLR.
+    #
+    # Los rangos usados aquí (temperature 0.7–1.1, top_p 0.85–0.95)
+    # son decisiones heurísticas del sistema.
     temperature = 0.7 + energy * 0.4
     
-    # Top-p: 0.85 (baja energía) -> 0.95 (alta energía)
     top_p = 0.85 + energy * 0.1
     
-    # Max tokens: aproximadamente 40 tokens por compás (valor ajustado para REMI)
-    # Más energía -> más notas -> más tokens por compás
+    # Estimar tokens por compás para REMI
+    # Valor heurístico (~40 tokens/bar) típico en secuencias REMI de piano.
+    #
+    # La densidad real depende de resolución temporal y complejidad musical.
+    #
+    # Ref conceptual:
+    # Fradet, N. et al. (2023). MidiTok: A Python package for MIDI tokenization.
     tokens_per_bar = int(40 * (0.8 + energy * 0.4))
     
     return {
@@ -454,10 +484,12 @@ def _postprocess_score(score, params: Dict[str, Any]):
             
             # Ajustar velocity hacia la media objetivo (promedio ponderado)
             # 70% hacia objetivo, 30% original
+            # Nota: Pesos 0.7/0.3 son heurística de diseño para suavizar
+            #       sin perder completamente la dinámica original del modelo.
             target = velocity_mean
             current = note.velocity
             new_vel = int(0.7 * target + 0.3 * current)
-            note.velocity = max(1, min(127, new_vel))
+            note.velocity = max(1, min(127, new_vel))  # MIDI 1.0 spec: velocity [1, 127]
     
     logger.debug(f"Score postprocesado: pitch=[{pitch_low}, {pitch_high}], vel_mean≈{velocity_mean}")
 

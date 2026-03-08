@@ -17,12 +17,26 @@ from mido import Message, MidiFile, MidiTrack, MetaMessage
 
 
 # Definición de escalas musicales (intervalos en semitonos desde la tónica)
+# Ref: Kostka, S., Payne, D., & Almen, B. (2018). Tonal Harmony (8th ed.).
+#      Patrón mayor (Jónico): T-T-S-T-T-T-S → [0,2,4,5,7,9,11]
+#      Patrón menor natural (Eólico): T-S-T-T-S-T-T → [0,2,3,5,7,8,10]
 SCALES = {
     'major': [0, 2, 4, 5, 7, 9, 11],      # Escala mayor (Jónico)
     'minor': [0, 2, 3, 5, 7, 8, 10]       # Escala menor natural (Eólico)
 }
 
-# Subdivisiones rítmicas (en ticks por nota, 480 ticks = 1 beat)
+# Subdivisiones rítmicas en ticks.
+# Asumimos una resolución de 480 ticks por negra (TPQ/PPQ).
+#
+# En Standard MIDI Files la resolución temporal es configurable y se
+# guarda en el campo "division"; 480 es un valor común en secuenciadores
+# pero no un estándar obligatorio.
+#
+# Referencia:
+# MIDI Manufacturers Association (1996). MIDI 1.0 Detailed Specification.
+#
+# Con 480 ticks por negra:
+# blanca = 960, negra = 480, corchea = 240, semicorchea = 120
 RHYTHM_PATTERNS = {
     'simple': [960, 480, 480],                    # Blancas y negras
     'moderate': [480, 480, 240, 240],             # Negras y corcheas
@@ -127,6 +141,19 @@ def _generate_melody(
             melody.append((note, velocity, duration))
             
             # Random walk: mover índice de nota (preferir saltos pequeños)
+            # Movimiento melódico local: heurística inspirada en la literatura de expectativa melódica.
+            # Se favorecen los desplazamientos pequeños (±1) frente a saltos mayores (±2),
+            # porque los intervalos cortos tienden a implicar continuaciones también cercanas.
+            # Los saltos mayores se permiten, pero con menor probabilidad.
+            #
+            # Base teórica:
+            # - Schellenberg (1997), simplificación del modelo Implication-Realization de Narmour:
+            #   los intervalos pequeños favorecen continuaciones de tamaño pequeño/similar.
+            # - von Hippel & Huron (2000): los saltos grandes suelen ir seguidos de compensación
+            #   o cambio de dirección, aunque parte del efecto puede explicarse por tessitura.
+            #
+            # Importante: estos pesos concretos no provienen directamente de los artículos;
+            # son una heurística de diseño para generar contornos relativamente cantables y estables.
             step = rng.choices(
                 [-2, -1, 0, 1, 2],
                 weights=[0.1, 0.3, 0.2, 0.3, 0.1]

@@ -27,15 +27,21 @@ logger = logging.getLogger(__name__)
 
 def compute_va_heuristic(row: pd.Series) -> tuple[float, float]:
     """
-    Calcula valence y arousal heurístico desde características musicales.
-    
-    Heurísticas:
-    - Arousal: mayor tempo, velocity y density → mayor arousal
-    - Valence: mayor velocity, pitch medio-alto, menor varianza → mayor valence
-    
+    Calcula valence y arousal heurísticos desde características musicales.
+
+    Heurísticas usadas en este pipeline:
+    - Arousal: mayor tempo estimado, intensidad media (velocity) y densidad
+      de eventos tienden a aumentar el arousal.
+    - Valence: se aproxima mediante una combinación heurística de intensidad,
+      registro medio y amplitud del rango melódico.
+
+    Nota: estas reglas no implementan un modelo validado de percepción
+    emocional; son aproximaciones de ingeniería inspiradas en literatura
+    general sobre emoción musical.
+
     Args:
         row: Fila del DataFrame con metadata musical
-        
+
     Returns:
         Tupla (valence, arousal) en rango [-1, 1]
     """
@@ -58,20 +64,30 @@ def compute_va_heuristic(row: pd.Series) -> tuple[float, float]:
     # Heurística: más notas por segundo ~ mayor tempo
     estimated_tempo = min(180, max(60, 60 + density * 10))
     
-    # AROUSAL: energía musical (0-1 antes de normalizar)
-    # - Tempo: 60-180 bpm → 0-1
-    # - Velocity: 0-127 → 0-1
-    # - Density: 0-10 notas/s → 0-1
+    # AROUSAL: aproximación heurística de activación emocional.
+    # La literatura sobre emoción musical suele asociar mayor arousal con
+    # tempo más rápido, mayor intensidad y mayor densidad de eventos.
+    # Referencias generales:
+    # - Juslin, P. N., & Laukka, P. (2004)
+    # - Gabrielsson, A., & Lindström, E. (2010)
+    #
+    # Los pesos y normalizaciones usados aquí son heurísticos.
     tempo_norm = (estimated_tempo - 60) / 120
     velocity_norm = mean_velocity / 127.0
     density_norm = min(1.0, density / 10.0)
     
     arousal_raw = 0.4 * tempo_norm + 0.3 * velocity_norm + 0.3 * density_norm
     
-    # VALENCE: "positividad" musical (0-1 antes de normalizar)
-    # - Velocity alta (energía) correlaciona con valence positivo
-    # - Pitch medio-alto (60-80) correlaciona con valence positivo
-    # - Pitch range moderado (ni muy estrecho ni muy amplio) → más estable → más valence
+    # VALENCE: aproximación heurística de positividad percibida.
+    # Se combina:
+    # - velocity media,
+    # - registro medio,
+    # - rango de alturas.
+    #
+    # Esta combinación se usa como convención de diseño del proyecto.
+    # No corresponde a una fórmula estándar de la literatura.
+    # En particular, el rango objetivo de 24 semitonos y los pesos
+    # 0.4/0.3/0.3 son decisiones heurísticas.
     pitch_mean = (min_pitch + max_pitch) / 2
     pitch_mean_norm = (pitch_mean - 48) / 48  # 48-96 → 0-1
     
@@ -81,8 +97,9 @@ def compute_va_heuristic(row: pd.Series) -> tuple[float, float]:
     
     valence_raw = 0.4 * velocity_norm + 0.3 * pitch_mean_norm + 0.3 * range_score
     
-    # Normalizar a [-1, 1] con algo de varianza
-    # Añadir pequeño ruido gaussiano para evitar valores idénticos
+    # Normalizar a [-1, 1].
+    # Se añade un pequeño ruido gaussiano para evitar empates exactos.
+    # sigma=0.05 es una decisión heurística de ingeniería.
     arousal = np.clip(arousal_raw * 2 - 1 + np.random.normal(0, 0.05), -1, 1)
     valence = np.clip(valence_raw * 2 - 1 + np.random.normal(0, 0.05), -1, 1)
     

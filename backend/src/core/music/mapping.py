@@ -81,32 +81,52 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     # El arousal controla directamente la velocidad del tempo
     # Bajo arousal (calma) -> tempos lentos (~60 BPM)
     # Alto arousal (energia) -> tempos rapidos (~180 BPM)
+    # Ref: Juslin, P. N. & Laukka, P. (2004), Tabla 2 — tempo rápido correlaciona
+    #      con alta activación (happiness, anger); tempo lento con baja (sadness, tenderness).
+    #      Rango 60-180 BPM: convención musical estándar (Largo a Presto).
     tempo_bpm = int(lerp(60, 180, t_a))
     
     # ===== MODO =====
     # La valencia determina el modo musical
     # Valence positiva -> modo mayor (sonido alegre/brillante)
     # Valence negativa -> modo menor (sonido triste/oscuro)
+    # Ref: Hevner, K. (1935). The affective character of the major and minor modes
+    #      in music. American Journal of Psychology, 47(1), 103–118.
+    #      Eerola, T. & Vuoskoski, J. K. (2011) — modo mayor asociado a valencia positiva.
+    # Nota: Umbral binario en V=0 es simplificación; alternativas como modos
+    #       intermedios (Dórico, Mixolidio) no están implementadas.
     mode = "major" if v >= 0 else "minor"
     
     # ===== DENSIDAD =====
     # El arousal controla la densidad de notas
     # Bajo arousal -> pocas notas (musica espaciada)
     # Alto arousal -> muchas notas (musica densa)
+    # Ref: Eerola, T., Friberg, A. & Bresin, R. (2013). Emotional expression in
+    #      music — densidad de eventos se asocia con arousal alto.
+    #      Juslin, P. N. & Lindström, E. (2010) — note density como cue de arousal.
+    # Nota: Rango 0.2-1.0 es heurístico (se evita densidad 0 para garantizar contenido).
     density = lerp(0.2, 1.0, t_a)
     
     # ===== RANGO TONAL =====
     # Registro (centro tonal): sube con valencia
     # Valencia baja -> registro grave (C4 = MIDI 60)
     # Valencia alta -> registro agudo (C5 = MIDI 72)
+    # Ref: Juslin, P. N. & Laukka, P. (2004), Tabla 2 — registro agudo asociado
+    #      a emociones positivas y alta activación.
+    #      Dalla Bella, S. et al. (2001) — pitch alto correlaciona con valencia positiva.
+    # Nota: MIDI 60=C4, 72=C5 (convención MIDI 1.0). Mapeo a V es discutible;
+    #       la literatura sugiere correlación con A también (Ilie & Thompson, 2006).
     pitch_center = lerp(60, 72, t_v)
     
     # Amplitud (span): sube con arousal
     # Bajo arousal -> rango estrecho (1 octava = 12 semitonos)
     # Alto arousal -> rango amplio (2 octavas = 24 semitonos)
+    # Ref: Eerola, T. et al. (2009) — pitch range se correlaciona con arousal.
+    #      Rango 12-24 semitonos (1-2 octavas): heurística de diseño.
     span = lerp(12, 24, t_a)
     
     # Calcular límites del rango tonal
+    # Ref: MIDI 1.0 spec — 48=C3, 60=C4, 72=C5, 84=C6 (rango típico de piano solo).
     pitch_low = int(clamp(pitch_center - span / 2, 48, 60))
     pitch_high = int(clamp(pitch_center + span / 2, 72, 84))
     
@@ -131,6 +151,11 @@ def va_to_music_params(v: float, a: float) -> Dict[str, any]:
     # La velocity aumenta principalmente con arousal, con un bonus de valencia
     # Arousal alto -> notas mas fuertes (mas impacto)
     # Valencia positiva -> ligero incremento en brillo/intensidad
+    # Ref: Juslin, P. N. & Laukka, P. (2004), Tabla 2 — intensidad (loudness)
+    #      correlaciona fuertemente con arousal y moderadamente con valencia positiva.
+    # Nota: Fórmula vel = 40 + 60*t_a + 20*t_v es heurística lineal.
+    #       Pesos (60 arousal, 20 valencia) son decisión de diseño, no calibrados.
+    #       Rango resultante [40, 120] dentro de MIDI velocity [1, 127].
     vel = 40 + 60 * t_a + 20 * t_v
     velocity_mean = int(clamp(vel, 40, 120))
     

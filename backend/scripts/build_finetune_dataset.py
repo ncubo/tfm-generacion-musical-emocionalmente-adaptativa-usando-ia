@@ -192,15 +192,22 @@ def create_windows(
 
 def normalize_midi_pitches(midi_path: Path, min_pitch: int = 21, max_pitch: int = 108) -> Optional[Path]:
     """
-    Normaliza pitches de un MIDI al rango válido del tokenizador.
-    
+    Normaliza los pitches de un MIDI al rango objetivo usado en este pipeline.
+
     Crea una copia temporal del MIDI con pitches clampeados.
-    
+
+    El intervalo 21-108 corresponde al rango A0-C8, es decir, el rango
+    del piano estándar de 88 teclas. En MIDI, las notas se codifican
+    numéricamente y A0=21, C8=108.
+
+    Nota: esta función impone el rango de piano como decisión de
+    preprocesamiento; no implica que MIDI solo admita ese rango.
+
     Args:
         midi_path: Path al MIDI original
         min_pitch: Pitch mínimo válido (default: 21, A0)
         max_pitch: Pitch máximo válido (default: 108, C8)
-        
+
     Returns:
         Path al MIDI normalizado (temporal) o None si falla
     """
@@ -475,6 +482,27 @@ def main():
     )
     
     # Parámetros de ventaneo
+    #
+    # Tokenización REMI para música simbólica.
+    # Referencia:
+    # Fradet, N. et al. (2023). MidiTok: A Python package for MIDI tokenization.
+    #
+    # En tokenizaciones REMI la densidad suele ser del orden de decenas de
+    # tokens por compás (dependiendo de resolución temporal y densidad musical).
+    # Una ventana de 1024 tokens suele cubrir varias decenas de compases
+    # en datasets de piano monofónicos o con pocas pistas.
+    #
+    # Ventaneo con overlap para manejar secuencias largas.
+    # Usar ventanas solapadas permite preservar contexto entre segmentos
+    # cuando se entrenan modelos sobre secuencias largas.
+    #
+    # Referencia conceptual:
+    # Dai, Z. et al. (2019). Transformer-XL: Attentive Language Models Beyond
+    # a Fixed-Length Context.
+    #
+    # Aquí se usa:
+    # window_size = 1024
+    # stride = 512  (~50% overlap)
     parser.add_argument('--window_size', type=int, default=1024,
                        help='Tamaño de ventana en tokens')
     parser.add_argument('--stride', type=int, default=512,
@@ -482,7 +510,13 @@ def main():
     parser.add_argument('--min_window_tokens', type=int, default=256,
                        help='Mínimo de tokens por ventana')
     
-    # Discretización
+    # Discretización del espacio valence–arousal (VA)
+    #
+    # Se usan 9 bins → rango discreto [-4, +4] para cada dimensión.
+    #
+    # La granularidad (9 bins) es una decisión heurística que busca equilibrar:
+    # - resolución emocional
+    # - número de muestras disponibles por bin
     parser.add_argument('--bins', type=int, default=9,
                        help='Número de bins para VA (debe ser impar)')
     
