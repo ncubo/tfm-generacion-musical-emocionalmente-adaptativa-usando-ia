@@ -35,3 +35,11 @@ python-dotenv>=1.0.0  # Carga variables de entorno desde archivo .env
 
 # huggingface_hub para descargar modelos desde Hugging Face Hub
 huggingface_hub
+
+# Dependencias para preparación de estímulos perceptuales (MIDI → MP3/WAV)
+# Requieren también fluidsynth + ffmpeg instalados en el sistema:
+#   macOS:  brew install fluidsynth ffmpeg
+#   Ubuntu: sudo apt install fluidsynth ffmpeg
+pretty_midi>=0.2.10
+pyFluidSynth>=1.3.3
+pydub>=0.25.0          # Conversión a MP3 (para usar en google forms) - requiere ffmpeg instalado
