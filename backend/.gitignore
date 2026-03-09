@@ -81,3 +81,5 @@ data/finetune_dataset/
 
 # no subir resultados de benchmark (archivos generados)
 results/
+perceptual_test/
+audio_trimmed/
