@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{Accuracy de percepción emocional por motor de generación}
+\label{tab:accuracy_by_model}
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{\textbf{Valencia}} & \multicolumn{2}{c}{\textbf{Activación}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Modelo} & \textbf{Accuracy} & \textbf{N} & \textbf{Accuracy} & \textbf{N} \\
+\midrule
+Baseline & 0.533 & 107 & 0.971 & 104 \\
+Transformer preentrenado & 0.357 & 84 & 0.659 & 91 \\
+Transformer fine-tuned & 0.531 & 98 & 0.859 & 92 \\
+\bottomrule
+\end{tabular}
+\end{table}
