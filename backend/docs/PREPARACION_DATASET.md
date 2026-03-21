@@ -10,7 +10,7 @@ wget http://hog.ee.columbia.edu/craffel/lmd/lmd_matched.tar.gz
 tar -xzf lmd_matched.tar.gz
 ```
 
-Fuente: https://colinraffel.com/projects/lmd/ (45129 archivos, ~45 GB)
+Fuente: https://colinraffel.com/projects/lmd/ (45129 archivos, ~5 GB)
 
 ## 2. Extracción Piano
 
