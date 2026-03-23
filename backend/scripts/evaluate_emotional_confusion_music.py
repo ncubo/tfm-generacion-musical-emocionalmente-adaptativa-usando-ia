@@ -418,7 +418,7 @@ def plot_confusion_matrix(
     ax.set_ylabel('Cuadrante Objetivo (VA target)', fontsize=12, fontweight='bold')
     ax.set_title(
         f'Matriz de Confusión Emocional — {engine}\n'
-        f'Accuracy = {accuracy:.1%} (n={cm_array.sum()})',
+        f'Exactitud = {accuracy:.1%} (n={cm_array.sum()})',
         fontsize=13, fontweight='bold'
     )
 
