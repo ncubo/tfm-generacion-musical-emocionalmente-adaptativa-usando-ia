@@ -80,7 +80,7 @@ def generate_figures(df):
     print("[4/11] Valencia accuracy by model...")
     fig, ax = plt.subplots(figsize=(10, 6))
     models = ['baseline', 'pretrained', 'finetuned']
-    model_labels = ['Baseline', 'Transformer\nPreentrenado', 'Transformer\nFine-tuned']
+    model_labels = ['Baseline', 'Transformer\nPre-trained', 'Transformer\nFine-tuned']
     val_accuracies = []
     for modelo in models:
         df_model = df[
@@ -94,8 +94,8 @@ def generate_figures(df):
             val_accuracies.append(0)
     
     bars = ax.bar(model_labels, val_accuracies, color=['#e78ac3', '#8da0cb', '#66c2a5'], edgecolor='black')
-    ax.set_ylabel('Accuracy (%)', fontsize=12)
-    ax.set_title('Accuracy de percepción de valencia por modelo', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Exactitud (%)', fontsize=12)
+    ax.set_title('Exactitud de percepción de valencia por modelo', fontsize=14, fontweight='bold')
     ax.set_ylim(0, 100)
     ax.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='Chance (50%)')
     for i, v in enumerate(val_accuracies):
@@ -121,8 +121,8 @@ def generate_figures(df):
             ar_accuracies.append(0)
     
     bars = ax.bar(model_labels, ar_accuracies, color=['#e78ac3', '#8da0cb', '#66c2a5'], edgecolor='black')
-    ax.set_ylabel('Accuracy (%)', fontsize=12)
-    ax.set_title('Accuracy de percepción de activación por modelo', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Exactitud (%)', fontsize=12)
+    ax.set_title('Exactitud de percepción de activación por modelo', fontsize=14, fontweight='bold')
     ax.set_ylim(0, 100)
     ax.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='Chance (50%)')
     for i, v in enumerate(ar_accuracies):
