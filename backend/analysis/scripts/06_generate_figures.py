@@ -174,10 +174,11 @@ def generate_figures(df):
     plt.savefig(figures_dir / "confusion_matrix_arousal_overall.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    # 8. Valencia confusion matrices by model
+    # 8. Valencia confusion matrices by model (separate images)
     print("[8/11] Valencia confusion matrices by model...")
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-    for idx, (modelo, label) in enumerate(zip(models, model_labels)):
+    model_suffixes = ['baseline', 'pretrained', 'finetuned']
+    for modelo, label, suffix in zip(models, model_labels, model_suffixes):
+        fig, ax = plt.subplots(figsize=(8, 6))
         df_model = df[
             (df['modelo'] == modelo) & 
             (df['valencia_binaria_strict'].isin(['positiva', 'negativa']))
@@ -187,24 +188,21 @@ def generate_figures(df):
             df_model['valencia_binaria_strict'],
             labels=['negativa', 'positiva']
         )
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False,
-                    xticklabels=['Neg', 'Pos'],
-                    yticklabels=['Neg', 'Pos'],
-                    ax=axes[idx], annot_kws={'fontsize': 12, 'fontweight': 'bold'})
-        axes[idx].set_title(label, fontsize=12, fontweight='bold')
-        if idx == 0:
-            axes[idx].set_ylabel('Valencia objetivo', fontsize=11)
-        axes[idx].set_xlabel('Valencia percibida', fontsize=11)
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=True,
+                    xticklabels=['Negativa', 'Positiva'],
+                    yticklabels=['Negativa', 'Positiva'],
+                    ax=ax, annot_kws={'fontsize': 14, 'fontweight': 'bold'})
+        ax.set_xlabel('Valencia percibida', fontsize=12)
+        ax.set_ylabel('Valencia objetivo', fontsize=12)
+        ax.set_title(f'Matriz de confusión: Valencia — {label.replace(chr(10), " ")}', fontsize=14, fontweight='bold')
+        plt.tight_layout()
+        plt.savefig(figures_dir / f"confusion_matrix_valencia_{suffix}.png", dpi=300, bbox_inches='tight')
+        plt.close()
     
-    plt.suptitle('Matrices de confusión: Valencia por modelo', fontsize=14, fontweight='bold', y=1.02)
-    plt.tight_layout()
-    plt.savefig(figures_dir / "confusion_matrix_valencia_by_model.png", dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # 9. Arousal confusion matrices by model
+    # 9. Arousal confusion matrices by model (separate images)
     print("[9/11] Arousal confusion matrices by model...")
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-    for idx, (modelo, label) in enumerate(zip(models, model_labels)):
+    for modelo, label, suffix in zip(models, model_labels, model_suffixes):
+        fig, ax = plt.subplots(figsize=(8, 6))
         df_model = df[
             (df['modelo'] == modelo) & 
             (df['arousal_binario_strict'].isin(['alto', 'bajo']))
@@ -214,19 +212,16 @@ def generate_figures(df):
             df_model['arousal_binario_strict'],
             labels=['bajo', 'alto']
         )
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Oranges', cbar=False,
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Oranges', cbar=True,
                     xticklabels=['Bajo', 'Alto'],
                     yticklabels=['Bajo', 'Alto'],
-                    ax=axes[idx], annot_kws={'fontsize': 12, 'fontweight': 'bold'})
-        axes[idx].set_title(label, fontsize=12, fontweight='bold')
-        if idx == 0:
-            axes[idx].set_ylabel('Activación objetivo', fontsize=11)
-        axes[idx].set_xlabel('Activación percibida', fontsize=11)
-    
-    plt.suptitle('Matrices de confusión: Activación por modelo', fontsize=14, fontweight='bold', y=1.02)
-    plt.tight_layout()
-    plt.savefig(figures_dir / "confusion_matrix_arousal_by_model.png", dpi=300, bbox_inches='tight')
-    plt.close()
+                    ax=ax, annot_kws={'fontsize': 14, 'fontweight': 'bold'})
+        ax.set_xlabel('Activación percibida', fontsize=12)
+        ax.set_ylabel('Activación objetivo', fontsize=12)
+        ax.set_title(f'Matriz de confusión: Activación — {label.replace(chr(10), " ")}', fontsize=14, fontweight='bold')
+        plt.tight_layout()
+        plt.savefig(figures_dir / f"confusion_matrix_arousal_{suffix}.png", dpi=300, bbox_inches='tight')
+        plt.close()
     
     # 10. Boxplot: valencia responses by target and model
     print("[10/11] Boxplot: Valencia responses by target and model...")

@@ -596,17 +596,15 @@ def plot_summary_dashboard(logs: Dict, summary: Dict, config: Dict):
 
 def plot_convergence_analysis(logs: Dict, summary: Dict):
     """
-    Gráfico 8: Análisis de convergencia.
+    Gráficos 8a/8b/8c: Análisis de convergencia (imágenes separadas).
     Demuestra que el modelo convergió adecuadamente:
-    - Loss decreciente y estabilizada
-    - Gap train/eval razonable
-    - Reducción de perplexity significativa
+    - 8a: Loss decreciente y estabilizada
+    - 8b: Reducción de perplexity significativa
+    - 8c: Gap train/eval razonable
     """
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-    # ── Panel A: Convergencia de loss (zoom en últimas epochs) ──
-    ax = axes[0]
-    # Solo datos de las últimas epochs (fase final, epoch > 4)
+    # ── 8a: Convergencia de loss (zoom en últimas epochs) ──
+    fig, ax = plt.subplots(figsize=(10, 6))
     final_train = [(e, l) for e, l in logs["train_losses"] if e > 4.0]
     final_eval = [(e, l) for e, l in logs["eval_losses"] if e > 4.0]
 
@@ -616,7 +614,6 @@ def plot_convergence_analysis(logs: Dict, summary: Dict):
         ax.plot(ep_tr, lo_tr, color=COLORS["train"], marker="o", markersize=5,
                 linewidth=2, label="Train Loss")
 
-        # Línea de tendencia
         z = np.polyfit(ep_tr, lo_tr, 1)
         poly = np.poly1d(z)
         ax.plot(ep_tr, poly(ep_tr), "--", color=COLORS["train"], alpha=0.4,
@@ -630,16 +627,18 @@ def plot_convergence_analysis(logs: Dict, summary: Dict):
 
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
-    ax.set_title("A) Convergencia (Últimas Epochs)", fontweight="bold")
-    ax.legend(fontsize=9)
+    ax.set_title("Convergencia de Loss (Últimas Epochs)", fontsize=14, fontweight="bold")
+    ax.legend()
+    fig.savefig(PLOTS_DIR / "08a_convergencia_loss.png")
+    plt.close(fig)
+    print("  ✓ 08a_convergencia_loss.png")
 
-    # ── Panel B: Barras comparativas de perplexity ──
-    ax = axes[1]
+    # ── 8b: Barras comparativas de perplexity ──
+    fig, ax = plt.subplots(figsize=(8, 6))
     ev_losses = [l for _, l in logs["eval_losses"]]
     perps = [math.exp(l) for l in ev_losses]
     ev_epochs = [e for e, _ in logs["eval_losses"]]
 
-    # Perplexity inicial (primera eval) vs final
     if len(perps) >= 2:
         pp_initial = perps[0]
         pp_final = perps[-1]
@@ -649,33 +648,31 @@ def plot_convergence_analysis(logs: Dict, summary: Dict):
 
         bars = ax.bar(labels, values, color=colors_bar, width=0.5, edgecolor="gray")
 
-        # Anotar valores
         for bar, val in zip(bars, values):
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
-                    f"{val:.1f}", ha="center", va="bottom", fontweight="bold", fontsize=12)
+                    f"{val:.1f}", ha="center", va="bottom", fontweight="bold", fontsize=14)
 
-        # Flecha de reducción
         reduction = (1 - pp_final / pp_initial) * 100
         ax.annotate(
             f"↓ {reduction:.1f}%",
             xy=(0.5, (pp_initial + pp_final) / 2),
-            fontsize=16, ha="center", fontweight="bold",
+            fontsize=18, ha="center", fontweight="bold",
             color=COLORS["lr"],
         )
 
     ax.set_ylabel("Perplexity")
-    ax.set_title("B) Reducción de Perplexity", fontweight="bold")
+    ax.set_title("Reducción de Perplexity", fontsize=14, fontweight="bold")
+    fig.savefig(PLOTS_DIR / "08b_reduccion_perplexity.png")
+    plt.close(fig)
+    print("  ✓ 08b_reduccion_perplexity.png")
 
-    # ── Panel C: Gap train/eval (indicador de overfitting) ──
-    ax = axes[2]
-
-    # Calcular gaps en los puntos de eval
+    # ── 8c: Gap train/eval (indicador de overfitting) ──
+    fig, ax = plt.subplots(figsize=(10, 6))
     eval_data = list(zip(ev_epochs, ev_losses))
     gaps = []
     gap_epochs = []
 
     for ev_ep, ev_loss in eval_data:
-        # Encontrar el train loss más cercano a esta epoch
         closest_train = None
         min_dist = float("inf")
         for tr_ep, tr_loss in logs["train_losses"]:
@@ -693,27 +690,19 @@ def plot_convergence_analysis(logs: Dict, summary: Dict):
         ax.bar([str(round(e, 2)) for e in gap_epochs], gaps, color=colors_gap,
                edgecolor="gray", width=0.6)
 
-        # Línea de referencia
         ax.axhline(y=1.0, color="gray", linestyle="--", alpha=0.5, label="Gap = 1.0")
 
-        # Anotar valores
         for i, (ep_str, g) in enumerate(zip([str(round(e, 2)) for e in gap_epochs], gaps)):
-            ax.text(i, g + 0.02, f"{g:.2f}", ha="center", fontsize=9, fontweight="bold")
+            ax.text(i, g + 0.02, f"{g:.2f}", ha="center", fontsize=10, fontweight="bold")
 
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Gap (Eval - Train)")
-    ax.set_title("C) Gap Train/Eval (Overfitting)", fontweight="bold")
+    ax.set_title("Gap Train/Eval (Indicador de Overfitting)", fontsize=14, fontweight="bold")
     if gaps:
-        ax.legend(fontsize=9)
-
-    fig.suptitle(
-        "Análisis de Convergencia del Fine-tuning",
-        fontsize=14, fontweight="bold", y=1.02,
-    )
-
-    fig.savefig(PLOTS_DIR / "08_convergence_analysis.png")
+        ax.legend()
+    fig.savefig(PLOTS_DIR / "08c_gap_train_eval.png")
     plt.close(fig)
-    print("  ✓ 08_convergence_analysis.png")
+    print("  ✓ 08c_gap_train_eval.png")
 
 
 def plot_full_training_history(logs: Dict, summary: Dict):
