@@ -699,7 +699,7 @@ def generate_summary_text(aggregated: Dict, data: List[Dict], output_path: Path)
 
 def generate_heatmaps(aggregated: Dict, output_dir: Path):
     """
-    Genera heatmaps de velocity y pitch_range para transformers.
+    Genera heatmaps de velocity y pitch_range para todos los engines.
     
     Args:
         aggregated: Dict con stats agregadas
@@ -711,21 +711,22 @@ def generate_heatmaps(aggregated: Dict, output_dir: Path):
     valences = sorted(set(k[1] for k in aggregated.keys()))
     arousals = sorted(set(k[2] for k in aggregated.keys()))
     
-    # Engines que existen en los datos (excluir baseline)
+    # Engines que existen en los datos (incluir todos)
     all_engines = sorted(set(k[0] for k in aggregated.keys()))
-    transformer_engines = [e for e in all_engines if e != 'baseline']
+    engines_to_plot = all_engines
     
-    if not transformer_engines:
-        logger.info("No hay engines transformer en los datos, skipping heatmaps")
+    if not engines_to_plot:
+        logger.info("No hay engines en los datos, skipping heatmaps")
         return
     
     # Métricas a graficar
     metrics = [
-        ('mean_velocity_mean', 'velocity', 'Velocity (MIDI)'),
-        ('pitch_range_mean', 'pitchrange', 'Pitch Range (semitonos)')
+        ('mean_velocity_mean', 'velocity', 'Velocidad (MIDI)'),
+        ('pitch_range_mean', 'pitchrange', 'Rango de Pitch (semitonos)'),
+        ('note_density_mean', 'notedensity', 'Densidad de Notas (notas/s)')
     ]
     
-    for engine in transformer_engines:
+    for engine in engines_to_plot:
         for metric_key, metric_name, metric_label in metrics:
             # Crear matriz
             matrix = np.zeros((len(arousals), len(valences)))
@@ -752,8 +753,8 @@ def generate_heatmaps(aggregated: Dict, output_dir: Path):
             ax.set_yticks(range(len(arousals)))
             ax.set_xticklabels([f"{v:+.1f}" for v in valences])
             ax.set_yticklabels([f"{a:+.1f}" for a in arousals])
-            ax.set_xlabel('Valence', fontsize=12)
-            ax.set_ylabel('Arousal', fontsize=12)
+            ax.set_xlabel('Valencia', fontsize=12)
+            ax.set_ylabel('Activación', fontsize=12)
             
             # Título
             engine_title = engine.replace('_', ' ').title()
